@@ -1,0 +1,31 @@
+CUADERNO DE CITAS VIRTUAL 💌
+=============================
+
+CÓMO USARLO
+1. Descomprime la carpeta.
+2. Abre el archivo "index.html" con doble clic (se abre en tu navegador: Chrome, Edge, Firefox, etc.)
+3. Pulsa "+ Añadir nueva cita" para crear una nueva entrada (título, fecha, lugar y descripción).
+4. Haz clic sobre cualquier tarjeta para abrir su detalle.
+5. Dentro del detalle, pulsa "📷 Subir fotos de esta cita" para añadir una o varias fotos.
+6. Haz clic sobre cualquier foto para verla en grande (puedes navegar con las flechas o eliminarla).
+
+GUARDADO DE DATOS
+- Todo se guarda automáticamente en el propio navegador (localStorage), en tu computadora.
+- Si cierras y vuelves a abrir index.html, tus citas y fotos seguirán ahí.
+- IMPORTANTE: los datos están ligados a ese navegador y a esa carpeta. Si mueves o borras la carpeta,
+  el navegador puede seguir teniendo los datos guardados igualmente (porque se guardan por el propio navegador),
+  pero para evitar sustos no borres la carpeta original hasta que confirmes que todo funciona.
+- No subas la carpeta a un hosting público sin protección, ya que cualquiera con el enlace podría ver las fotos
+  guardadas en ese navegador.
+
+PERSONALIZAR
+- Puedes editar los textos, colores y tipografías abriendo:
+  - css/style.css  (colores, estilos, tamaños)
+  - js/app.js      (comportamiento)
+  - index.html     (estructura y textos fijos)
+
+RECOMENDACIÓN
+- Si vas a usarlo en varios dispositivos (ej. computadora y celular), ten en cuenta que cada navegador
+  guarda sus propios datos por separado; no se sincronizan automáticamente entre dispositivos.
+
+¡Disfruten guardando sus recuerdos! 💕
