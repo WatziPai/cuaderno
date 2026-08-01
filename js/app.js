@@ -194,21 +194,27 @@ citaForm.addEventListener("submit", async (e) => {
     color: colorSeleccionado
   };
 
+  // Timeout de 10 segundos para evitar que se quede cargando para siempre
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("Tiempo de espera agotado. ¿Creaste Firestore Database en la consola de Firebase?")), 10000)
+  );
+
   try {
     if (editandoId) {
-      // Editar
-      await db.collection("citas").doc(editandoId).update(nuevaCita);
-      // No reseteamos current page para mantenerlo en su página
+      await Promise.race([db.collection("citas").doc(editandoId).update(nuevaCita), timeout]);
     } else {
-      // Nueva
-      nuevaCita.fotos = []; // solo inicializar al crear
-      await citasCol.add(nuevaCita);
+      nuevaCita.fotos = [];
+      await Promise.race([citasCol.add(nuevaCita), timeout]);
       currentPage = 1;
     }
     cerrarModal("citaModal");
   } catch (err) {
     console.error("Error guardando documento: ", err);
-    alert("Hubo un error al guardar la cita.");
+    let msg = err.message || String(err);
+    if (err.code === 'permission-denied' || msg.includes('permission')) {
+      msg = "Permisos denegados en Firebase.\n\nPara solucionarlo:\n1. Ve a console.firebase.google.com -> tu proyecto\n2. Menú izquierdo: Firestore Database -> pestaña REGLAS (Rules)\n3. Cambia la regla por:\n   allow read, write: if true;\n4. Haz clic en 'Publicar' (Publish).";
+    }
+    alert("❌ Error al guardar:\n\n" + msg);
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
