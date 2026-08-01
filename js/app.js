@@ -373,13 +373,13 @@ document.querySelector(".lightbox-next").addEventListener("click", () => {
 });
 
 document.getElementById("lightboxDelete").addEventListener("click", async () => {
-  const cita = citas.find((c) => c.id === citaActivaId);
+  const cita = citas.find(c => c.id === citaActivaId);
   if (!cita) return;
   if (!confirm("¿Eliminar esta foto de la cita?")) return;
-  
+
   const urlEliminar = cita.fotos[fotoActivaIndex];
   const nuevasFotos = cita.fotos.filter(url => url !== urlEliminar);
-  
+
   try {
     await db.collection("citas").doc(citaActivaId).update({ fotos: nuevasFotos });
     
@@ -393,6 +393,23 @@ document.getElementById("lightboxDelete").addEventListener("click", async () => 
     console.error(err);
     alert("Error eliminando foto");
   }
+});
+
+// ---- DESCARGAR FOTO ----
+document.getElementById("lightboxDownload").addEventListener("click", () => {
+  const cita = citas.find(c => c.id === citaActivaId);
+  if (!cita) return;
+  const url = cita.fotos[fotoActivaIndex];
+  // Crear enlace invisible para descargar
+  const a = document.createElement('a');
+  a.href = url;
+  // Extraer nombre del archivo de la URL o usar un nombre genérico
+  const parts = url.split('/');
+  const filename = parts[parts.length - 1].split('?')[0] || 'foto.jpg';
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 });
 
 document.querySelector(".lightbox-close").addEventListener("click", () => {
