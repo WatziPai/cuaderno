@@ -16,7 +16,7 @@ const db = firebase.firestore();
 const storage = firebase.storage();
 
 // Habilitar persistencia sin conexión ANTES de realizar cualquier consulta
-db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+db.enablePersistence().catch((err) => {
   if (err.code === 'failed-precondition') {
     console.warn("Persistencia de Firestore en múltiples pestañas habilitada parcialmente.");
   } else if (err.code === 'unimplemented') {
@@ -294,23 +294,15 @@ citaForm.addEventListener("submit", async (e) => {
 
 /* ---------- Subida de fotos pendientes y fallbacks ---------- */
 async function subirUnicaFoto(citaId, archivo, previewBase64) {
-  try {
-    const compressed = await compressImage(archivo, 1400, 1400, 0.78);
-    const fileRef = storage.ref(`citas/${citaId}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}_${compressed.name || 'foto.jpg'}`);
-    const snapshot = await fileRef.put(compressed);
-    return await snapshot.ref.getDownloadURL();
-  } catch (err) {
-    console.warn("Firebase Storage no disponible o sin permiso. Guardando foto optimizada en Base64:", err);
-    if (previewBase64) return previewBase64;
-    return await fileToBase64(archivo);
-  }
+  if (previewBase64) return previewBase64;
+  return await fileToBase64(archivo);
 }
 
 function fileToBase64(file) {
   return new Promise((resolve) => {
     compressImage(file, 1000, 1000, 0.75).then((compressedFile) => {
       const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
+      reader.onload = (e) => resolve(e.target.result || "");
       reader.onerror = () => resolve("");
       reader.readAsDataURL(compressedFile);
     });
@@ -418,26 +410,9 @@ modalPhotoInput.addEventListener("change", async (e) => {
   e.target.value = "";
 });
 
-/* Trigger directo de selector de archivos para garantizar funcionamiento en móviles */
-document.querySelectorAll('label[for="modalPhotoInput"], .btn-upload-modal').forEach(el => {
-  el.addEventListener('click', (ev) => {
-    if (ev.target !== modalPhotoInput) {
-      modalPhotoInput.click();
-    }
-  });
-});
-
 /* ---------- Modal: detalle de cita ---------- */
 const detailModal = document.getElementById("detailModal");
 const photoInput = document.getElementById("photoInput");
-
-document.querySelectorAll('label[for="photoInput"], .btn-upload').forEach(el => {
-  el.addEventListener('click', (ev) => {
-    if (ev.target !== photoInput) {
-      photoInput.click();
-    }
-  });
-});
 
 function abrirDetalle(id) {
   citaActivaId = id;
