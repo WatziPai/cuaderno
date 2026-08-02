@@ -159,6 +159,19 @@
             <span class="color-dot" data-color="#FFD4B5" style="background:#FFD4B5" title="Durazno"></span>
           </div>
         </div>
+        <div class="form-field">
+          <label>Fotos (opcional)</label>
+          <label for="modalPhotoInput" class="btn-upload-modal">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+            Añadir fotos
+          </label>
+          <input type="file" id="modalPhotoInput" accept="image/*" multiple hidden>
+          <div id="pendingPhotoPreview" class="pending-photo-preview"></div>
+        </div>
         <div class="form-actions">
           <button type="button" class="btn-ghost" data-close="citaModal">Cancelar</button>
           <button type="submit" class="btn-save">Guardar cita ✓</button>

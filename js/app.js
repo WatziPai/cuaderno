@@ -20,6 +20,8 @@ let citaActivaId = null; // id de la cita abierta en el modal de detalle
 let colorSeleccionado = "#f7d9e3";
 let fotoActivaIndex = 0; // índice de la foto abierta en el lightbox
 let editandoId = null;   // id de la cita que se está editando
+let pendingFotoFiles = []; // fotos seleccionadas antes de guardar la cita
+let pendingFotoPreviews = []; // base64 previews de las fotos pendientes
 
 // Paginación
 const ITEMS_PER_PAGE = 4;
@@ -64,8 +66,8 @@ function renderBoard() {
   }
   emptyState.style.display = "none";
 
-  // Más recientes primero
-  const ordenadas = [...citas].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  // Más antiguas primero
+  const ordenadas = [...citas].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   
   // Paginación
   const totalPages = Math.ceil(ordenadas.length / ITEMS_PER_PAGE);
@@ -161,6 +163,9 @@ document.getElementById("addCitaBtn").addEventListener("click", () => {
   citaForm.reset();
   colorSeleccionado = "#f7d9e3";
   marcarColorSeleccionado();
+  pendingFotoFiles = [];
+  pendingFotoPreviews = [];
+  renderPendingPreviews();
   document.getElementById("citaModalTitle").textContent = "Nueva cita";
   abrirModal("citaModal");
 });
@@ -183,7 +188,6 @@ citaForm.addEventListener("submit", async (e) => {
   
   const btn = e.target.querySelector('button[type="submit"]');
   const originalText = btn.textContent;
-  btn.textContent = "Guardando...";
   btn.disabled = true;
 
   const nuevaCita = {
@@ -194,17 +198,37 @@ citaForm.addEventListener("submit", async (e) => {
     color: colorSeleccionado
   };
 
-  // Timeout de 10 segundos para evitar que se quede cargando para siempre
+  // Timeout de 15 segundos
   const timeout = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error("Tiempo de espera agotado. ¿Creaste Firestore Database en la consola de Firebase?")), 10000)
+    setTimeout(() => reject(new Error("Tiempo de espera agotado. ¿Creaste Firestore Database en la consola de Firebase?")), 15000)
   );
 
   try {
     if (editandoId) {
+      btn.textContent = "Guardando...";
       await Promise.race([db.collection("citas").doc(editandoId).update(nuevaCita), timeout]);
+      // Si hay fotos pendientes al editar, subirlas también
+      if (pendingFotoFiles.length > 0) {
+        btn.textContent = "Subiendo fotos...";
+        const citaActual = citas.find(c => c.id === editandoId);
+        const fotosExistentes = citaActual ? (citaActual.fotos || []) : [];
+        const nuevasUrls = await subirFotosPendientes(editandoId);
+        await db.collection("citas").doc(editandoId).update({ fotos: [...fotosExistentes, ...nuevasUrls] });
+        pendingFotoFiles = [];
+        pendingFotoPreviews = [];
+      }
     } else {
       nuevaCita.fotos = [];
-      await Promise.race([citasCol.add(nuevaCita), timeout]);
+      btn.textContent = "Creando cita...";
+      const docRef = await Promise.race([citasCol.add(nuevaCita), timeout]);
+      // Subir fotos pendientes si las hay
+      if (pendingFotoFiles.length > 0) {
+        btn.textContent = "Subiendo fotos...";
+        const nuevasUrls = await subirFotosPendientes(docRef.id);
+        await db.collection("citas").doc(docRef.id).update({ fotos: nuevasUrls });
+        pendingFotoFiles = [];
+        pendingFotoPreviews = [];
+      }
       currentPage = 1;
     }
     cerrarModal("citaModal");
@@ -219,6 +243,64 @@ citaForm.addEventListener("submit", async (e) => {
     btn.textContent = originalText;
     btn.disabled = false;
   }
+});
+
+/* ---------- Subida de fotos pendientes (modal crear/editar) ---------- */
+async function subirFotosPendientes(citaId) {
+  const urls = [];
+  for (const archivo of pendingFotoFiles) {
+    const fileRef = storage.ref(`citas/${citaId}/${Date.now()}_${archivo.name}`);
+    const reader = new FileReader();
+    const base64Promise = new Promise(resolve => {
+      reader.onload = ev => resolve(ev.target.result);
+      reader.readAsDataURL(archivo);
+    });
+    const base64Data = await base64Promise;
+    await fileRef.putString(base64Data, 'data_url');
+    const url = await fileRef.getDownloadURL();
+    urls.push(url);
+  }
+  return urls;
+}
+
+function renderPendingPreviews() {
+  const container = document.getElementById("pendingPhotoPreview");
+  if (!container) return;
+  container.innerHTML = "";
+  pendingFotoPreviews.forEach((src, idx) => {
+    const wrap = document.createElement("div");
+    wrap.className = "pending-photo-item";
+    const img = document.createElement("img");
+    img.src = src;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "pending-photo-remove";
+    btn.innerHTML = "✕";
+    btn.title = "Quitar foto";
+    btn.addEventListener("click", () => {
+      pendingFotoFiles.splice(idx, 1);
+      pendingFotoPreviews.splice(idx, 1);
+      renderPendingPreviews();
+    });
+    wrap.appendChild(img);
+    wrap.appendChild(btn);
+    container.appendChild(wrap);
+  });
+  container.style.display = pendingFotoPreviews.length > 0 ? "flex" : "none";
+}
+
+document.getElementById("modalPhotoInput").addEventListener("change", (e) => {
+  const files = [...e.target.files];
+  files.forEach(file => {
+    pendingFotoFiles.push(file);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      pendingFotoPreviews.push(ev.target.result);
+      renderPendingPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = "";
 });
 
 /* ---------- Modal: detalle de cita ---------- */
@@ -323,6 +405,11 @@ document.getElementById("editCitaBtn").addEventListener("click", () => {
   
   colorSeleccionado = cita.color || "#f7d9e3";
   marcarColorSeleccionado();
+
+  // Limpiar fotos pendientes
+  pendingFotoFiles = [];
+  pendingFotoPreviews = [];
+  renderPendingPreviews();
 
   document.getElementById("citaModalTitle").textContent = "Editar cita";
   cerrarModal("detailModal");
