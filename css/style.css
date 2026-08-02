@@ -897,6 +897,7 @@ body {
 }
 .lightbox-ctrl:hover { background: rgba(255,255,255,0.2); transform: scale(1.1); }
 .lightbox-close { top: 24px; right: 24px; }
+#lightboxDownload { top: 24px; right: 86px; font-size: 1.2rem; }
 .lightbox-prev  { left: 24px; top: 50%; transform: translateY(-50%); }
 .lightbox-prev:hover  { transform: translateY(-50%) scale(1.1); }
 .lightbox-next  { right: 24px; top: 50%; transform: translateY(-50%); }
@@ -985,23 +986,40 @@ body {
 }
 
 @media (max-width: 680px) {
-  body { padding: 10px; align-items: flex-start; }
+  body { padding: 8px 4px; align-items: flex-start; }
   .notebook { min-height: 95vh; }
-  .notebook-spine { width: 32px; padding: 16px 0; }
-  .spine-ring { width: 24px; height: 16px; border-width: 3px; }
-  .cover-page { padding: 40px 24px 60px; }
-  .cover-title { font-size: 2.8rem; }
-  .inner-header { padding: 20px; flex-wrap: wrap; gap: 10px; }
-  .board { padding: 20px; }
+  .notebook-wrapper { filter: drop-shadow(0 10px 30px rgba(0,0,0,0.4)); }
+  .notebook-spine { width: 24px; padding: 12px 0; }
+  .spine-ring { width: 18px; height: 12px; border-width: 2px; }
+  .cover-page { padding: 36px 16px 48px; }
+  .cover-title { font-size: 2.4rem; margin-bottom: 20px; }
+  .cover-subtitle { font-size: 0.95rem; margin-bottom: 32px; }
+  .btn-open { padding: 14px 28px; font-size: 0.95rem; }
+  .inner-header { padding: 16px 14px; flex-wrap: wrap; gap: 10px; }
+  .header-badge { font-size: 0.8rem; padding: 6px 12px; }
+  .btn-add { padding: 10px 18px; font-size: 0.88rem; }
+  .board { padding: 16px 12px; }
+  .cita-card { margin-bottom: 16px; }
+  .modal { padding: 10px; }
   .modal-card { border-radius: 20px; }
+  .modal-header { padding: 24px 20px 0; margin-bottom: 20px; }
+  .modal-card form { padding: 0 20px 24px; }
+  .form-field input,
+  .form-field textarea { font-size: 16px; padding: 12px 14px; } /* Evita auto-zoom en iOS Safari */
   .form-row { grid-template-columns: 1fr; }
-  .detail-banner { padding: 36px 28px 24px; }
-  .detail-body { padding: 24px 24px 0; }
+  .modal-close-btn { top: 14px; right: 14px; width: 34px; height: 34px; }
+  .detail-banner { padding: 32px 20px 20px; }
+  .detail-banner h2 { font-size: 1.8rem; }
+  .detail-body { padding: 20px 16px 0; }
   .detail-actions { flex-wrap: wrap; }
   .btn-delete { margin-left: 0; width: 100%; justify-content: center; }
-  .photo-gallery { column-count: 2; }
-  .lightbox-prev { left: 10px; }
-  .lightbox-next { right: 10px; }
+  .photo-gallery { column-count: 2; gap: 8px; }
+  .lightbox-ctrl { width: 44px; height: 44px; }
+  .lightbox-close { top: 16px; right: 16px; }
+  #lightboxDownload { top: 16px; right: 68px; }
+  .lightbox-prev { left: 8px; }
+  .lightbox-next { right: 8px; }
+  .lightbox img { max-width: 96vw; max-height: 72vh; }
 }
 
 /* ═══════════════════════════════════════

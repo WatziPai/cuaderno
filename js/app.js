@@ -224,39 +224,59 @@ citaForm.addEventListener("submit", async (e) => {
   try {
     if (editandoId) {
       btn.textContent = "Guardando...";
-      await Promise.race([db.collection("citas").doc(editandoId).update(nuevaCita), timeout]);
-      // Si hay fotos pendientes al editar, subirlas también
+      const citaIndex = citas.findIndex(c => c.id === editandoId);
+      const citaActual = citas[citaIndex] || {};
+      const fotosExistentes = citaActual.fotos || [];
+      
+      let nuevasUrls = [];
       if (pendingFotoFiles.length > 0) {
-        btn.textContent = "Subiendo fotos...";
-        const citaActual = citas.find(c => c.id === editandoId);
-        const fotosExistentes = citaActual ? (citaActual.fotos || []) : [];
-        const nuevasUrls = await subirFotosPendientes(editandoId);
-        await db.collection("citas").doc(editandoId).update({ fotos: [...fotosExistentes, ...nuevasUrls] });
-        pendingFotoFiles = [];
-        pendingFotoPreviews = [];
+        btn.textContent = "Procesando fotos...";
+        nuevasUrls = await subirFotosPendientes(editandoId);
       }
+
+      const fotosFinales = [...fotosExistentes, ...nuevasUrls];
+      const citaDataActualizada = { ...nuevaCita, fotos: fotosFinales };
+
+      // Intentar guardar en Firestore
+      try {
+        await Promise.race([db.collection("citas").doc(editandoId).update(citaDataActualizada), timeout]);
+      } catch (errDb) {
+        console.warn("Firestore inaccesible. Guardando cambio localmente:", errDb);
+        if (citaIndex !== -1) {
+          citas[citaIndex] = { id: editandoId, ...citaDataActualizada };
+          localStorage.setItem("cuaderno_citas_backup", JSON.stringify(citas));
+          renderBoard();
+        }
+      }
+      pendingFotoFiles = [];
+      pendingFotoPreviews = [];
     } else {
-      nuevaCita.fotos = [];
-      btn.textContent = "Creando cita...";
-      const docRef = await Promise.race([citasCol.add(nuevaCita), timeout]);
-      // Subir fotos pendientes si las hay
+      const tempId = "local_" + Date.now();
+      let nuevasUrls = [];
       if (pendingFotoFiles.length > 0) {
-        btn.textContent = "Subiendo fotos...";
-        const nuevasUrls = await subirFotosPendientes(docRef.id);
-        await db.collection("citas").doc(docRef.id).update({ fotos: nuevasUrls });
-        pendingFotoFiles = [];
-        pendingFotoPreviews = [];
+        btn.textContent = "Procesando fotos...";
+        nuevasUrls = await subirFotosPendientes(tempId);
       }
+      nuevaCita.fotos = nuevasUrls;
+
+      try {
+        btn.textContent = "Creando cita...";
+        const docRef = await Promise.race([citasCol.add(nuevaCita), timeout]);
+        // Si subimos con ID temporal, actualizar si hizo falta
+      } catch (errDb) {
+        console.warn("Firestore inaccesible. Guardando cita localmente:", errDb);
+        citas.push({ id: tempId, ...nuevaCita });
+        localStorage.setItem("cuaderno_citas_backup", JSON.stringify(citas));
+        renderBoard();
+      }
+      pendingFotoFiles = [];
+      pendingFotoPreviews = [];
       currentPage = 1;
     }
     cerrarModal("citaModal");
   } catch (err) {
     console.error("Error guardando documento: ", err);
-    let msg = err.message || String(err);
-    if (err.code === 'permission-denied' || msg.includes('permission')) {
-      msg = "Permisos denegados en Firebase.\n\nPara solucionarlo:\n1. Ve a console.firebase.google.com -> tu proyecto\n2. Menú izquierdo: Firestore Database -> pestaña REGLAS (Rules)\n3. Cambia la regla por:\n   allow read, write: if true;\n4. Haz clic en 'Publicar' (Publish).";
-    }
-    alert("❌ Error al guardar:\n\n" + msg);
+    alert("❌ Hubo un inconveniente al guardar la cita.");
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
@@ -272,12 +292,35 @@ db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
   }
 });
 
-/* ---------- Subida de fotos pendientes (modal crear/editar) ---------- */
-async function subirFotosPendientes(citaId) {
-  const promesas = pendingFotoFiles.map(async (archivo) => {
-    const fileRef = storage.ref(`citas/${citaId}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}_${archivo.name}`);
-    const snapshot = await fileRef.put(archivo);
+/* ---------- Subida de fotos pendientes y fallbacks ---------- */
+async function subirUnicaFoto(citaId, archivo, previewBase64) {
+  try {
+    const compressed = await compressImage(archivo, 1400, 1400, 0.78);
+    const fileRef = storage.ref(`citas/${citaId}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}_${compressed.name || 'foto.jpg'}`);
+    const snapshot = await fileRef.put(compressed);
     return await snapshot.ref.getDownloadURL();
+  } catch (err) {
+    console.warn("Firebase Storage no disponible o sin permiso. Guardando foto optimizada en Base64:", err);
+    if (previewBase64) return previewBase64;
+    return await fileToBase64(archivo);
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve) => {
+    compressImage(file, 1000, 1000, 0.75).then((compressedFile) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(compressedFile);
+    });
+  });
+}
+
+async function subirFotosPendientes(citaId) {
+  const promesas = pendingFotoFiles.map((archivo, idx) => {
+    const preview = pendingFotoPreviews[idx];
+    return subirUnicaFoto(citaId, archivo, preview);
   });
   return await Promise.all(promesas);
 }
@@ -308,23 +351,93 @@ function renderPendingPreviews() {
   container.style.display = pendingFotoPreviews.length > 0 ? "flex" : "none";
 }
 
-document.getElementById("modalPhotoInput").addEventListener("change", (e) => {
+/* ---------- Compresión de imágenes para móvil y web ---------- */
+function compressImage(file, maxWidth = 1600, maxHeight = 1600, quality = 0.8) {
+  return new Promise((resolve) => {
+    if (!file || !file.type.startsWith('image/')) {
+      resolve(file);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const compressedFile = new File([blob], file.name || 'foto.jpg', {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            });
+            resolve(compressedFile);
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
+const modalPhotoInput = document.getElementById("modalPhotoInput");
+modalPhotoInput.addEventListener("change", async (e) => {
   const files = [...e.target.files];
-  files.forEach(file => {
-    pendingFotoFiles.push(file);
+  for (const file of files) {
+    const compressed = await compressImage(file);
+    pendingFotoFiles.push(compressed);
     const reader = new FileReader();
     reader.onload = ev => {
       pendingFotoPreviews.push(ev.target.result);
       renderPendingPreviews();
     };
-    reader.readAsDataURL(file);
-  });
+    reader.readAsDataURL(compressed);
+  }
   e.target.value = "";
+});
+
+/* Trigger directo de selector de archivos para garantizar funcionamiento en móviles */
+document.querySelectorAll('label[for="modalPhotoInput"], .btn-upload-modal').forEach(el => {
+  el.addEventListener('click', (ev) => {
+    if (ev.target !== modalPhotoInput) {
+      modalPhotoInput.click();
+    }
+  });
 });
 
 /* ---------- Modal: detalle de cita ---------- */
 const detailModal = document.getElementById("detailModal");
 const photoInput = document.getElementById("photoInput");
+
+document.querySelectorAll('label[for="photoInput"], .btn-upload').forEach(el => {
+  el.addEventListener('click', (ev) => {
+    if (ev.target !== photoInput) {
+      photoInput.click();
+    }
+  });
+});
 
 function abrirDetalle(id) {
   citaActivaId = id;
@@ -375,28 +488,33 @@ photoInput.addEventListener("change", async (e) => {
   const archivos = [...e.target.files];
   if (archivos.length === 0) return;
 
-  const label = document.querySelector(".upload-label");
-  const originalLabel = label.textContent;
-  label.textContent = "⏳ Subiendo fotos...";
+  const label = document.querySelector('label[for="photoInput"]') || document.querySelector(".btn-upload");
+  const originalText = label ? label.innerHTML : "Añadir fotos";
+  if (label) label.textContent = "⏳ Subiendo fotos...";
   
   try {
-    const subidas = archivos.map(async (archivo) => {
-      const fileRef = storage.ref(`citas/${cita.id}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}_${archivo.name}`);
-      const snapshot = await fileRef.put(archivo);
-      return await snapshot.ref.getDownloadURL();
-    });
-
+    const subidas = archivos.map((archivo) => subirUnicaFoto(cita.id, archivo, null));
     const nuevasUrls = await Promise.all(subidas);
-    
-    await db.collection("citas").doc(cita.id).update({
-      fotos: [...(cita.fotos || []), ...nuevasUrls]
-    });
-    
+    const urlsValidas = nuevasUrls.filter(u => !!u);
+
+    const fotosActualizadas = [...(cita.fotos || []), ...urlsValidas];
+    cita.fotos = fotosActualizadas;
+
+    try {
+      await db.collection("citas").doc(cita.id).update({ fotos: fotosActualizadas });
+    } catch (err) {
+      console.warn("Firestore update falló, guardando localmente:", err);
+      try {
+        localStorage.setItem("cuaderno_citas_backup", JSON.stringify(citas));
+      } catch (e) {}
+      renderGaleria(cita);
+      renderBoard();
+    }
   } catch (err) {
     console.error("Error subiendo fotos:", err);
-    alert("Hubo un error al subir las fotos. Verifica la conexión o las reglas de seguridad de Storage.");
+    alert("Hubo un error al procesar las fotos.");
   } finally {
-    label.textContent = originalLabel;
+    if (label) label.innerHTML = originalText;
     photoInput.value = "";
   }
 });
@@ -470,6 +588,33 @@ document.querySelector(".lightbox-next").addEventListener("click", () => {
   actualizarLightbox();
 });
 
+/* Soporte táctil / swipe en móvil para Lightbox */
+let touchStartX = 0;
+let touchEndX = 0;
+
+lightbox.addEventListener("touchstart", (e) => {
+  if (e.touches.length === 1) {
+    touchStartX = e.touches[0].clientX;
+  }
+}, { passive: true });
+
+lightbox.addEventListener("touchend", (e) => {
+  if (e.changedTouches.length === 1) {
+    touchEndX = e.changedTouches[0].clientX;
+    const diff = touchEndX - touchStartX;
+    if (Math.abs(diff) > 40) {
+      const cita = citas.find((c) => c.id === citaActivaId);
+      if (!cita || !cita.fotos || !cita.fotos.length) return;
+      if (diff < 0) {
+        fotoActivaIndex = (fotoActivaIndex + 1) % cita.fotos.length;
+      } else {
+        fotoActivaIndex = (fotoActivaIndex - 1 + cita.fotos.length) % cita.fotos.length;
+      }
+      actualizarLightbox();
+    }
+  }
+}, { passive: true });
+
 document.getElementById("lightboxDelete").addEventListener("click", async () => {
   const cita = citas.find(c => c.id === citaActivaId);
   if (!cita) return;
@@ -494,20 +639,24 @@ document.getElementById("lightboxDelete").addEventListener("click", async () => 
 });
 
 // ---- DESCARGAR FOTO ----
-document.getElementById("lightboxDownload").addEventListener("click", () => {
+document.getElementById("lightboxDownload").addEventListener("click", async () => {
   const cita = citas.find(c => c.id === citaActivaId);
-  if (!cita) return;
+  if (!cita || !cita.fotos.length) return;
   const url = cita.fotos[fotoActivaIndex];
-  // Crear enlace invisible para descargar
-  const a = document.createElement('a');
-  a.href = url;
-  // Extraer nombre del archivo de la URL o usar un nombre genérico
-  const parts = url.split('/');
-  const filename = parts[parts.length - 1].split('?')[0] || 'foto.jpg';
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `foto_cita_${Date.now()}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+  } catch (err) {
+    window.open(url, '_blank');
+  }
 });
 
 document.querySelector(".lightbox-close").addEventListener("click", () => {
