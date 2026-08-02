@@ -232,6 +232,47 @@
     </div>
   </div>
 
+  <!-- MODAL: Encuadre de Portada -->
+  <div id="cropModal" class="modal hidden">
+    <div class="modal-card crop-card">
+      <button class="modal-close-btn" data-close="cropModal" aria-label="Cerrar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+      <div class="modal-header">
+        <span class="modal-icon">📐</span>
+        <h2>Encuadre de portada</h2>
+        <p class="modal-sub">Mueve los deslizadores o usa los atajos para enfocar la parte perfecta (ej. la cabeza/rostro).</p>
+      </div>
+      <div class="crop-preview-container">
+        <div id="cropPreviewCard" class="crop-preview-card">
+          <span class="crop-badge">Vista Previa</span>
+        </div>
+      </div>
+      <div class="crop-controls">
+        <div class="crop-presets">
+          <button type="button" class="btn-preset" data-preset="50% 0%">👤 Cabeza / Arriba</button>
+          <button type="button" class="btn-preset" data-preset="50% 50%">🎯 Centro</button>
+          <button type="button" class="btn-preset" data-preset="50% 100%">🦶 Abajo</button>
+        </div>
+        <div class="form-field">
+          <label for="cropSliderY">Posición Vertical (Arriba ↕️ Abajo)</label>
+          <input type="range" id="cropSliderY" min="0" max="100" value="50">
+        </div>
+        <div class="form-field">
+          <label for="cropSliderX">Posición Horizontal (Izquierda ↔️ Derecha)</label>
+          <input type="range" id="cropSliderX" min="0" max="100" value="50">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-ghost" data-close="cropModal">Cancelar</button>
+        <button type="button" id="saveCropBtn" class="btn-save">Guardar Encuadre ✓</button>
+      </div>
+    </div>
+  </div>
+
   <!-- LIGHTBOX -->
   <div id="lightbox" class="lightbox hidden">
     <div class="lightbox-overlay"></div>
@@ -255,14 +296,7 @@
     </button>
     <div class="lightbox-toolbar">
       <button id="lightboxSetCover" class="lightbox-btn-cover">📌 Usar como Portada</button>
-      <div id="lightboxPosPicker" class="lightbox-pos-picker hidden">
-        <span class="pos-label">Enfoque:</span>
-        <button class="btn-pos" data-pos="center" title="Centro">🎯 Centro</button>
-        <button class="btn-pos" data-pos="top" title="Arriba">⬆️ Arriba</button>
-        <button class="btn-pos" data-pos="bottom" title="Abajo">⬇️ Abajo</button>
-        <button class="btn-pos" data-pos="left" title="Izquierda">⬅️ Izq</button>
-        <button class="btn-pos" data-pos="right" title="Derecha">➡️ Der</button>
-      </div>
+      <button id="lightboxAdjustCrop" class="lightbox-btn-crop">📐 Ajustar Encuadre</button>
       <button id="lightboxDelete" class="lightbox-delete">🗑 Eliminar foto</button>
     </div>
   </div>

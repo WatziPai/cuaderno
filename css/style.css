@@ -864,6 +864,98 @@ body {
 }
 
 /* ═══════════════════════════════════════
+   MODAL DE ENCUADRE DE PORTADA
+═══════════════════════════════════════ */
+.crop-card {
+  max-width: 520px;
+}
+.modal-sub {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+.crop-preview-container {
+  padding: 0 36px 20px;
+}
+.crop-preview-card {
+  height: 200px;
+  width: 100%;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  border: 2px solid var(--amber);
+  transition: background-position 0.1s linear;
+}
+.crop-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  backdrop-filter: blur(4px);
+}
+
+.crop-controls {
+  padding: 0 36px 10px;
+}
+.crop-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.btn-preset {
+  flex: 1;
+  min-width: 100px;
+  background: var(--cream-deep);
+  border: 1px solid rgba(200,134,58,0.2);
+  color: var(--ink-mid);
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+}
+.btn-preset:hover {
+  background: var(--amber-pale);
+  border-color: var(--amber);
+  color: var(--amber-dark);
+}
+
+.crop-controls input[type="range"] {
+  width: 100%;
+  accent-color: var(--amber);
+  cursor: pointer;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.lightbox-btn-crop {
+  background: var(--amber-pale);
+  color: var(--amber-dark);
+  border: 1px solid var(--amber);
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.lightbox-btn-crop:hover {
+  background: var(--amber);
+  color: white;
+}
+
+/* ═══════════════════════════════════════
    LIGHTBOX
 ═══════════════════════════════════════ */
 .lightbox {

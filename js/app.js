@@ -561,24 +561,19 @@ function actualizarLightbox() {
   lightboxImg.src = currentUrl;
 
   const btnCover = document.getElementById("lightboxSetCover");
-  const posPicker = document.getElementById("lightboxPosPicker");
+  const btnCrop = document.getElementById("lightboxAdjustCrop");
   const fotoPortadaActual = cita.portadaUrl || cita.fotos[0];
   const isCover = (currentUrl === fotoPortadaActual);
 
   if (isCover) {
     btnCover.innerHTML = "⭐ Portada Actual";
     btnCover.classList.add("active");
-    posPicker.classList.remove("hidden");
+    btnCrop.classList.remove("hidden");
   } else {
     btnCover.innerHTML = "📌 Usar como Portada";
     btnCover.classList.remove("active");
-    posPicker.classList.add("hidden");
+    btnCrop.classList.add("hidden");
   }
-
-  const currentPos = cita.portadaPos || "center";
-  document.querySelectorAll(".btn-pos").forEach(btn => {
-    btn.classList.toggle("active", btn.dataset.pos === currentPos);
-  });
 }
 
 document.getElementById("lightboxSetCover").addEventListener("click", async () => {
@@ -587,7 +582,7 @@ document.getElementById("lightboxSetCover").addEventListener("click", async () =
 
   const urlSeleccionada = cita.fotos[fotoActivaIndex];
   cita.portadaUrl = urlSeleccionada;
-  if (!cita.portadaPos) cita.portadaPos = "center";
+  if (!cita.portadaPos) cita.portadaPos = "50% 50%";
 
   try {
     await db.collection("citas").doc(citaActivaId).update({
@@ -601,31 +596,96 @@ document.getElementById("lightboxSetCover").addEventListener("click", async () =
   actualizarLightbox();
   renderGaleria(cita);
   renderBoard();
+  abrirCropModal(cita);
 });
 
-document.querySelectorAll(".btn-pos").forEach(btn => {
-  btn.addEventListener("click", async (e) => {
-    e.stopPropagation();
-    const cita = citas.find(c => c.id === citaActivaId);
-    if (!cita || !cita.fotos || !cita.fotos.length) return;
+document.getElementById("lightboxAdjustCrop").addEventListener("click", () => {
+  const cita = citas.find(c => c.id === citaActivaId);
+  if (!cita) return;
+  abrirCropModal(cita);
+});
 
-    const pos = btn.dataset.pos;
-    cita.portadaPos = pos;
-    cita.portadaUrl = cita.fotos[fotoActivaIndex];
+/* ---------- Modal de Encuadre de Portada ---------- */
+let tempCropX = 50;
+let tempCropY = 50;
 
-    try {
-      await db.collection("citas").doc(citaActivaId).update({
-        portadaUrl: cita.portadaUrl,
-        portadaPos: cita.portadaPos
-      });
-    } catch (e) {
-      try { localStorage.setItem("cuaderno_citas_backup", JSON.stringify(citas)); } catch(err){}
+function abrirCropModal(cita) {
+  const cropPreviewCard = document.getElementById("cropPreviewCard");
+  const sliderX = document.getElementById("cropSliderX");
+  const sliderY = document.getElementById("cropSliderY");
+
+  const coverUrl = cita.portadaUrl || (cita.fotos && cita.fotos.length > 0 ? cita.fotos[0] : "");
+  if (!coverUrl) return;
+
+  cropPreviewCard.style.backgroundImage = `url(${coverUrl})`;
+  cropPreviewCard.style.backgroundSize = "cover";
+
+  // Extraer valores actuales de posición si existen
+  let posX = 50;
+  let posY = 50;
+  if (cita.portadaPos) {
+    const parts = cita.portadaPos.split(" ");
+    if (parts.length === 2) {
+      posX = parseInt(parts[0]) || 50;
+      posY = parseInt(parts[1]) || 50;
     }
+  }
 
-    actualizarLightbox();
-    renderGaleria(cita);
-    renderBoard();
+  tempCropX = posX;
+  tempCropY = posY;
+  sliderX.value = posX;
+  sliderY.value = posY;
+
+  actualizarPreviewCrop();
+  abrirModal("cropModal");
+}
+
+function actualizarPreviewCrop() {
+  const cropPreviewCard = document.getElementById("cropPreviewCard");
+  if (cropPreviewCard) {
+    cropPreviewCard.style.backgroundPosition = `${tempCropX}% ${tempCropY}%`;
+  }
+}
+
+document.getElementById("cropSliderX").addEventListener("input", (e) => {
+  tempCropX = e.target.value;
+  actualizarPreviewCrop();
+});
+
+document.getElementById("cropSliderY").addEventListener("input", (e) => {
+  tempCropY = e.target.value;
+  actualizarPreviewCrop();
+});
+
+document.querySelectorAll(".btn-preset").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const [xStr, yStr] = btn.dataset.preset.split(" ");
+    tempCropX = parseInt(xStr) || 50;
+    tempCropY = parseInt(yStr) || 50;
+    document.getElementById("cropSliderX").value = tempCropX;
+    document.getElementById("cropSliderY").value = tempCropY;
+    actualizarPreviewCrop();
   });
+});
+
+document.getElementById("saveCropBtn").addEventListener("click", async () => {
+  const cita = citas.find(c => c.id === citaActivaId);
+  if (!cita) return;
+
+  const posStr = `${tempCropX}% ${tempCropY}%`;
+  cita.portadaPos = posStr;
+
+  try {
+    await db.collection("citas").doc(citaActivaId).update({
+      portadaPos: posStr,
+      portadaUrl: cita.portadaUrl || (cita.fotos && cita.fotos[0])
+    });
+  } catch (e) {
+    try { localStorage.setItem("cuaderno_citas_backup", JSON.stringify(citas)); } catch(err){}
+  }
+
+  cerrarModal("cropModal");
+  renderBoard();
 });
 
 document.querySelector(".lightbox-prev").addEventListener("click", () => {
@@ -669,26 +729,41 @@ lightbox.addEventListener("touchend", (e) => {
   }
 }, { passive: true });
 
+/* Eliminar foto de forma fluida y sin bloqueos */
 document.getElementById("lightboxDelete").addEventListener("click", async () => {
   const cita = citas.find(c => c.id === citaActivaId);
-  if (!cita) return;
+  if (!cita || !cita.fotos || !cita.fotos.length) return;
   if (!confirm("¿Eliminar esta foto de la cita?")) return;
 
   const urlEliminar = cita.fotos[fotoActivaIndex];
   const nuevasFotos = cita.fotos.filter(url => url !== urlEliminar);
+  cita.fotos = nuevasFotos;
 
+  if (cita.portadaUrl === urlEliminar) {
+    cita.portadaUrl = nuevasFotos.length > 0 ? nuevasFotos[0] : null;
+  }
+
+  // Actualizar backup local inmediatamente
+  try { localStorage.setItem("cuaderno_citas_backup", JSON.stringify(citas)); } catch (e) {}
+
+  // Intentar actualizar Firestore
   try {
-    await db.collection("citas").doc(citaActivaId).update({ fotos: nuevasFotos });
-    
-    if (nuevasFotos.length === 0) {
-      lightbox.classList.add("hidden");
-    } else {
-      fotoActivaIndex = Math.min(fotoActivaIndex, nuevasFotos.length - 1);
-      actualizarLightbox();
-    }
+    await db.collection("citas").doc(citaActivaId).update({
+      fotos: nuevasFotos,
+      portadaUrl: cita.portadaUrl || null
+    });
   } catch (err) {
-    console.error(err);
-    alert("Error eliminando foto");
+    console.warn("Error secundario actualizando DB al eliminar foto:", err);
+  }
+
+  renderGaleria(cita);
+  renderBoard();
+
+  if (nuevasFotos.length === 0) {
+    lightbox.classList.add("hidden");
+  } else {
+    fotoActivaIndex = Math.min(fotoActivaIndex, nuevasFotos.length - 1);
+    actualizarLightbox();
   }
 });
 
