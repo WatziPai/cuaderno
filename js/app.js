@@ -15,6 +15,15 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const storage = firebase.storage();
 
+// Habilitar persistencia sin conexión ANTES de realizar cualquier consulta
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn("Persistencia de Firestore en múltiples pestañas habilitada parcialmente.");
+  } else if (err.code === 'unimplemented') {
+    console.warn("El navegador no soporta persistencia en Firestore.");
+  }
+});
+
 let citas = [];          // array de objetos cita
 let citaActivaId = null; // id de la cita abierta en el modal de detalle
 let colorSeleccionado = "#f7d9e3";
@@ -280,15 +289,6 @@ citaForm.addEventListener("submit", async (e) => {
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
-  }
-});
-
-// Habilitar persistencia sin conexión en Firestore si está disponible
-db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
-  if (err.code === 'failed-precondition') {
-    console.warn("Persistencia de Firestore en múltiples pestañas habilitada parcialmente.");
-  } else if (err.code === 'unimplemented') {
-    console.warn("El navegador no soporta persistencia en Firestore.");
   }
 });
 
