@@ -780,6 +780,7 @@ body {
   margin-bottom: 10px;
 }
 .photo-item {
+  position: relative;
   break-inside: avoid;
   margin-bottom: 12px;
   border-radius: 16px;
@@ -787,12 +788,28 @@ body {
   cursor: zoom-in;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
 }
+
 .photo-item img {
   width: 100%;
   display: block;
   transition: transform 0.4s ease;
 }
 .photo-item:hover img { transform: scale(1.06); }
+
+.cover-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  background: rgba(200, 134, 58, 0.9);
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  backdrop-filter: blur(4px);
+}
 
 .empty-gallery {
   text-align: center;
@@ -857,7 +874,7 @@ body {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   animation: modal-in 0.2s ease;
 }
 .lightbox.hidden { display: none; }
@@ -873,7 +890,7 @@ body {
   position: relative;
   z-index: 2;
   max-width: min(90vw, 900px);
-  max-height: 78vh;
+  max-height: 72vh;
   border-radius: 16px;
   box-shadow: 0 30px 80px rgba(0,0,0,0.6);
   animation: card-in 0.35s ease;
@@ -903,20 +920,95 @@ body {
 .lightbox-next  { right: 24px; top: 50%; transform: translateY(-50%); }
 .lightbox-next:hover  { transform: translateY(-50%) scale(1.1); }
 
+/* Lightbox Toolbar y Enfoque de Portada */
+.lightbox-toolbar {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(20, 12, 6, 0.85);
+  padding: 12px 20px;
+  border-radius: var(--radius-pill);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.12);
+  max-width: 92vw;
+}
+
+.lightbox-btn-cover {
+  background: rgba(255,255,255,0.15);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.25);
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.lightbox-btn-cover:hover {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+.lightbox-btn-cover.active {
+  background: var(--amber);
+  border-color: var(--amber);
+  box-shadow: 0 0 12px var(--amber-glow);
+}
+
+.lightbox-pos-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0,0,0,0.4);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+.lightbox-pos-picker.hidden { display: none !important; }
+
+.pos-label {
+  color: rgba(255,255,255,0.7);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.btn-pos {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: white;
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-pos:hover { background: rgba(255,255,255,0.25); }
+.btn-pos.active {
+  background: var(--amber);
+  border-color: var(--amber);
+  font-weight: 600;
+}
+
 .lightbox-delete {
   position: relative;
   z-index: 2;
   background: rgba(200,40,40,0.8);
   border: none;
   color: white;
-  padding: 10px 24px;
+  padding: 8px 18px;
   border-radius: var(--radius-pill);
   font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
 }
-.lightbox-delete:hover { background: rgba(200,40,40,1); transform: scale(1.05); }
+.lightbox-delete:hover { background: rgba(200,40,40,1); transform: scale(1.04); }
 
 /* ═══════════════════════════════════════
    FOOTER DEL CUADERNO

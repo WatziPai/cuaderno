@@ -247,13 +247,24 @@
       </svg>
     </button>
     <img id="lightboxImg" src="" alt="Foto de la cita">
-<button id="lightboxDownload" class="lightbox-ctrl" title="Descargar foto original">⬇️</button>
+    <button id="lightboxDownload" class="lightbox-ctrl" title="Descargar foto original">⬇️</button>
     <button class="lightbox-ctrl lightbox-next" aria-label="Siguiente">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="9 18 15 12 9 6" />
       </svg>
     </button>
-    <button id="lightboxDelete" class="lightbox-delete">🗑 Eliminar foto</button>
+    <div class="lightbox-toolbar">
+      <button id="lightboxSetCover" class="lightbox-btn-cover">📌 Usar como Portada</button>
+      <div id="lightboxPosPicker" class="lightbox-pos-picker hidden">
+        <span class="pos-label">Enfoque:</span>
+        <button class="btn-pos" data-pos="center" title="Centro">🎯 Centro</button>
+        <button class="btn-pos" data-pos="top" title="Arriba">⬆️ Arriba</button>
+        <button class="btn-pos" data-pos="bottom" title="Abajo">⬇️ Abajo</button>
+        <button class="btn-pos" data-pos="left" title="Izquierda">⬅️ Izq</button>
+        <button class="btn-pos" data-pos="right" title="Derecha">➡️ Der</button>
+      </div>
+      <button id="lightboxDelete" class="lightbox-delete">🗑 Eliminar foto</button>
+    </div>
   </div>
 
   <script>

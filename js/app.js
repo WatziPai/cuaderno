@@ -121,10 +121,11 @@ function renderBoard() {
     portada.className = "cita-cover";
     portada.style.background = cita.color || "#f7d9e3";
 
-    if (cita.fotos && cita.fotos.length > 0) {
-      portada.style.backgroundImage = `url(${cita.fotos[0]})`;
+    const coverFoto = cita.portadaUrl || (cita.fotos && cita.fotos.length > 0 ? cita.fotos[0] : null);
+    if (coverFoto) {
+      portada.style.backgroundImage = `url(${coverFoto})`;
       portada.style.backgroundSize = "cover";
-      portada.style.backgroundPosition = "center";
+      portada.style.backgroundPosition = cita.portadaPos || "center";
       portada.style.minHeight = "180px";
     } else {
       portada.innerHTML = `<span class="cover-icon">💌</span>`;
@@ -444,9 +445,19 @@ function renderGaleria(cita) {
   const fotos = cita.fotos || [];
   emptyMsg.style.display = fotos.length === 0 ? "block" : "none";
 
+  const fotoPortadaActual = cita.portadaUrl || (fotos.length > 0 ? fotos[0] : null);
+
   fotos.forEach((fotoUrl, idx) => {
     const item = document.createElement("div");
     item.className = "photo-item";
+
+    if (fotoUrl === fotoPortadaActual) {
+      const badge = document.createElement("span");
+      badge.className = "cover-badge";
+      badge.innerHTML = "⭐ Portada";
+      item.appendChild(badge);
+    }
+
     const img = document.createElement("img");
     img.src = fotoUrl;
     img.loading = "lazy";
@@ -545,9 +556,77 @@ function abrirLightbox(idx) {
 
 function actualizarLightbox() {
   const cita = citas.find((c) => c.id === citaActivaId);
-  if (!cita || !cita.fotos.length) return;
-  lightboxImg.src = cita.fotos[fotoActivaIndex];
+  if (!cita || !cita.fotos || !cita.fotos.length) return;
+  const currentUrl = cita.fotos[fotoActivaIndex];
+  lightboxImg.src = currentUrl;
+
+  const btnCover = document.getElementById("lightboxSetCover");
+  const posPicker = document.getElementById("lightboxPosPicker");
+  const fotoPortadaActual = cita.portadaUrl || cita.fotos[0];
+  const isCover = (currentUrl === fotoPortadaActual);
+
+  if (isCover) {
+    btnCover.innerHTML = "⭐ Portada Actual";
+    btnCover.classList.add("active");
+    posPicker.classList.remove("hidden");
+  } else {
+    btnCover.innerHTML = "📌 Usar como Portada";
+    btnCover.classList.remove("active");
+    posPicker.classList.add("hidden");
+  }
+
+  const currentPos = cita.portadaPos || "center";
+  document.querySelectorAll(".btn-pos").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.pos === currentPos);
+  });
 }
+
+document.getElementById("lightboxSetCover").addEventListener("click", async () => {
+  const cita = citas.find(c => c.id === citaActivaId);
+  if (!cita || !cita.fotos || !cita.fotos.length) return;
+
+  const urlSeleccionada = cita.fotos[fotoActivaIndex];
+  cita.portadaUrl = urlSeleccionada;
+  if (!cita.portadaPos) cita.portadaPos = "center";
+
+  try {
+    await db.collection("citas").doc(citaActivaId).update({
+      portadaUrl: cita.portadaUrl,
+      portadaPos: cita.portadaPos
+    });
+  } catch (e) {
+    try { localStorage.setItem("cuaderno_citas_backup", JSON.stringify(citas)); } catch(err){}
+  }
+
+  actualizarLightbox();
+  renderGaleria(cita);
+  renderBoard();
+});
+
+document.querySelectorAll(".btn-pos").forEach(btn => {
+  btn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const cita = citas.find(c => c.id === citaActivaId);
+    if (!cita || !cita.fotos || !cita.fotos.length) return;
+
+    const pos = btn.dataset.pos;
+    cita.portadaPos = pos;
+    cita.portadaUrl = cita.fotos[fotoActivaIndex];
+
+    try {
+      await db.collection("citas").doc(citaActivaId).update({
+        portadaUrl: cita.portadaUrl,
+        portadaPos: cita.portadaPos
+      });
+    } catch (e) {
+      try { localStorage.setItem("cuaderno_citas_backup", JSON.stringify(citas)); } catch(err){}
+    }
+
+    actualizarLightbox();
+    renderGaleria(cita);
+    renderBoard();
+  });
+});
 
 document.querySelector(".lightbox-prev").addEventListener("click", () => {
   const cita = citas.find((c) => c.id === citaActivaId);
