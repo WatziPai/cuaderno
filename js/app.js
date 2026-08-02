@@ -27,10 +27,26 @@ let pendingFotoPreviews = []; // base64 previews de las fotos pendientes
 const ITEMS_PER_PAGE = 4;
 let currentPage = 1;
 
+// Carga inicial rápida desde LocalStorage si existe
+try {
+  const localData = localStorage.getItem("cuaderno_citas_backup");
+  if (localData) {
+    citas = JSON.parse(localData);
+    renderBoard();
+  }
+} catch (e) {
+  console.warn("No se pudo leer LocalStorage", e);
+}
+
 /* ---------- Firebase: Suscripción a cambios ---------- */
 const citasCol = db.collection("citas");
 citasCol.onSnapshot((snapshot) => {
   citas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  try {
+    localStorage.setItem("cuaderno_citas_backup", JSON.stringify(citas));
+  } catch (e) {
+    // Si excede el espacio de LocalStorage por imágenes grandes
+  }
   renderBoard();
   
   // Si tenemos un modal de detalle abierto, actualizamos sus datos también
@@ -46,6 +62,8 @@ citasCol.onSnapshot((snapshot) => {
       document.getElementById("lightbox").classList.add("hidden");
     }
   }
+}, (error) => {
+  console.error("Error en la conexión con Firebase: ", error);
 });
 
 /* ---------- Render del tablero principal ---------- */
@@ -245,22 +263,23 @@ citaForm.addEventListener("submit", async (e) => {
   }
 });
 
+// Habilitar persistencia sin conexión en Firestore si está disponible
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn("Persistencia de Firestore en múltiples pestañas habilitada parcialmente.");
+  } else if (err.code === 'unimplemented') {
+    console.warn("El navegador no soporta persistencia en Firestore.");
+  }
+});
+
 /* ---------- Subida de fotos pendientes (modal crear/editar) ---------- */
 async function subirFotosPendientes(citaId) {
-  const urls = [];
-  for (const archivo of pendingFotoFiles) {
-    const fileRef = storage.ref(`citas/${citaId}/${Date.now()}_${archivo.name}`);
-    const reader = new FileReader();
-    const base64Promise = new Promise(resolve => {
-      reader.onload = ev => resolve(ev.target.result);
-      reader.readAsDataURL(archivo);
-    });
-    const base64Data = await base64Promise;
-    await fileRef.putString(base64Data, 'data_url');
-    const url = await fileRef.getDownloadURL();
-    urls.push(url);
-  }
-  return urls;
+  const promesas = pendingFotoFiles.map(async (archivo) => {
+    const fileRef = storage.ref(`citas/${citaId}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}_${archivo.name}`);
+    const snapshot = await fileRef.put(archivo);
+    return await snapshot.ref.getDownloadURL();
+  });
+  return await Promise.all(promesas);
 }
 
 function renderPendingPreviews() {
@@ -362,17 +381,9 @@ photoInput.addEventListener("change", async (e) => {
   
   try {
     const subidas = archivos.map(async (archivo) => {
-      const fileRef = storage.ref(`citas/${cita.id}/${Date.now()}_${archivo.name}`);
-      
-      const reader = new FileReader();
-      const base64Promise = new Promise(resolve => {
-        reader.onload = ev => resolve(ev.target.result);
-        reader.readAsDataURL(archivo);
-      });
-      const base64Data = await base64Promise;
-      
-      await fileRef.putString(base64Data, 'data_url');
-      return await fileRef.getDownloadURL();
+      const fileRef = storage.ref(`citas/${cita.id}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}_${archivo.name}`);
+      const snapshot = await fileRef.put(archivo);
+      return await snapshot.ref.getDownloadURL();
     });
 
     const nuevasUrls = await Promise.all(subidas);
@@ -383,7 +394,7 @@ photoInput.addEventListener("change", async (e) => {
     
   } catch (err) {
     console.error("Error subiendo fotos:", err);
-    alert("Hubo un error al subir las fotos. Verifica si Storage tiene las reglas de seguridad abiertas.");
+    alert("Hubo un error al subir las fotos. Verifica la conexión o las reglas de seguridad de Storage.");
   } finally {
     label.textContent = originalLabel;
     photoInput.value = "";
