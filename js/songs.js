@@ -231,9 +231,24 @@ function openSongModal(slot) {
   const playerDiv = document.getElementById("songModalPlayer");
 
   if (playerDiv) {
-    if (link) {
+    if (song.hasAudioChunks) {
       playerDiv.style.display = "block";
-      const isAudioFile = /\.(mp3|wav|m4a|ogg|aac)($|\?)/i.test(link) || link.includes("alt=media");
+      if (iframe) { iframe.style.display = "none"; iframe.src = ""; }
+      if (audio) {
+        audio.style.display = "block";
+        audio.pause();
+        audio.src = "";
+        
+        loadChunkedAudio(slot).then(base64Src => {
+          if (currentOpenSlot === slot && base64Src) {
+            audio.src = base64Src;
+            audio.play().catch(() => {});
+          }
+        }).catch(err => console.error("Error cargando audio:", err));
+      }
+    } else if (link) {
+      playerDiv.style.display = "block";
+      const isAudioFile = /\.(mp3|wav|m4a|ogg|aac)($|\?)/i.test(link) || link.startsWith("data:audio") || link.includes("alt=media");
       if (isAudioFile && audio) {
         if (iframe) { iframe.style.display = "none"; iframe.src = ""; }
         audio.style.display = "block";
@@ -264,6 +279,24 @@ function openSongModal(slot) {
   if (slot === "1") {
     showSpecialOverlay();
   }
+}
+
+// Caché de audio en memoria
+const audioCache = {};
+
+async function loadChunkedAudio(slot) {
+  if (audioCache[slot]) {
+    return audioCache[slot];
+  }
+  const snapshot = await db.collection("songs").doc(slot).collection("audioChunks").orderBy("index").get();
+  let fullBase64 = "";
+  snapshot.forEach(doc => {
+    fullBase64 += doc.data().chunkData;
+  });
+  if (fullBase64) {
+    audioCache[slot] = fullBase64;
+  }
+  return fullBase64;
 }
 
 document.getElementById("songModalClose").addEventListener("click", closeSongModal);
@@ -476,7 +509,14 @@ document.getElementById("adminDeleteBtn").addEventListener("click", async () => 
   if (!confirm("¿Estas seguro de eliminar esta cancion?")) return;
 
   try {
+    const oldChunks = await db.collection("songs").doc(slot).collection("audioChunks").get();
+    if (!oldChunks.empty) {
+      const batchDelete = db.batch();
+      oldChunks.forEach(doc => batchDelete.delete(doc.ref));
+      await batchDelete.commit();
+    }
     await db.collection("songs").doc(slot).delete();
+    delete audioCache[slot];
     clearAdminForm();
     document.getElementById("adminPanel").classList.add("hidden");
     adminPanelOpen = false;
@@ -508,34 +548,50 @@ async function saveSong() {
   btn.disabled = true;
 
   try {
-    // Si se seleccionó un archivo de audio nuevo, subirlo a Firebase Storage
+    let hasAudioChunks = songsData[slot] ? (songsData[slot].hasAudioChunks || false) : false;
+
+    // Si se seleccionó un archivo de audio nuevo, procesarlo a Base64 y guardar en Firestore por partes (Chunks)
     if (selectedAudioFile) {
-      btn.textContent = "Subiendo archivo de audio...";
-      try {
-        const fileExt = selectedAudioFile.name.split('.').pop();
-        const safeName = selectedAudioFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-        const storageRef = firebase.storage().ref(`songs/${slot}_${Date.now()}_${safeName}`);
-        const snapshot = await storageRef.put(selectedAudioFile);
-        link = await snapshot.ref.getDownloadURL();
-      } catch (storageErr) {
-        console.warn("Storage upload failed, fallback base64 if small:", storageErr);
-        if (selectedAudioFile.size <= 850 * 1024) {
-          link = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = evt => resolve(evt.target.result);
-            reader.onerror = err => reject(err);
-            reader.readAsDataURL(selectedAudioFile);
-          });
-        } else {
-          alert("Error al subir a Firebase Storage o el archivo supera 5MB. Por favor intenta de nuevo.");
-          btn.textContent = "Guardar Cancion";
-          btn.disabled = false;
-          return;
-        }
+      btn.textContent = "Procesando archivo de audio...";
+      
+      const base64Audio = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = evt => resolve(evt.target.result);
+        reader.onerror = err => reject(err);
+        reader.readAsDataURL(selectedAudioFile);
+      });
+
+      // Dividir el Base64 en trozos de 400,000 caracteres (~400KB por doc)
+      const CHUNK_SIZE = 400000;
+      const chunks = [];
+      for (let i = 0; i < base64Audio.length; i += CHUNK_SIZE) {
+        chunks.push(base64Audio.substring(i, i + CHUNK_SIZE));
       }
+
+      btn.textContent = `Guardando audio (${chunks.length} partes)...`;
+
+      // Eliminar chunks viejos
+      const oldChunks = await db.collection("songs").doc(slot).collection("audioChunks").get();
+      if (!oldChunks.empty) {
+        const batchDelete = db.batch();
+        oldChunks.forEach(doc => batchDelete.delete(doc.ref));
+        await batchDelete.commit();
+      }
+
+      // Guardar chunks nuevos
+      const batchSave = db.batch();
+      chunks.forEach((chunkData, index) => {
+        const chunkRef = db.collection("songs").doc(slot).collection("audioChunks").doc(`chunk_${index}`);
+        batchSave.set(chunkRef, { index, chunkData });
+      });
+      await batchSave.commit();
+
+      audioCache[slot] = base64Audio;
+      hasAudioChunks = true;
+      link = "chunked_audio";
     }
 
-    if (!title || (!link && !selectedAudioFile)) {
+    if (!title || (!link && !selectedAudioFile && !hasAudioChunks)) {
       alert("Por favor completa el título y selecciona un archivo de audio para la canción.");
       btn.textContent = "Guardar Cancion";
       btn.disabled = false;
@@ -554,6 +610,7 @@ async function saveSong() {
       title,
       artist,
       link,
+      hasAudioChunks,
       dedication,
       carta,
       emoji,
