@@ -75,6 +75,11 @@
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </button>
+          <a href="songs.html" class="btn-listening-here">
+            <span>&#9834;</span>
+            Listening Here
+            <span>&#9834;</span>
+          </a>
         </div>
         <div class="cover-footer"> 2026 - Solo para nosotros</div>
       </div>
@@ -91,13 +96,16 @@
             <button id="logoutBtn" class="btn-ghost"
               style="margin-left:10px; font-size:0.8rem; padding: 6px 12px; border: 1px solid rgba(200, 134, 58, 0.3);">Salir</button>
           </div>
-          <button id="addCitaBtn" class="btn-add">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Nueva cita
-          </button>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <a href="songs.html" class="btn-listening-here-sm">&#9834; Listening Here</a>
+            <button id="addCitaBtn" class="btn-add">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Nueva cita
+            </button>
+          </div>
         </header>
 
         <main id="board" class="board"></main>
