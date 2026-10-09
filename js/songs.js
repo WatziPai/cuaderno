@@ -404,12 +404,33 @@ function loadAdminForm(slot) {
     document.getElementById("adminSongEmoji").value = song.emoji || "\uD83C\uDFB5";
     deleteBtn.classList.remove("hidden");
 
+    if (song.link) {
+      const audioPrev = document.getElementById("adminAudioPreview");
+      if (audioPrev) audioPrev.innerHTML = `🎵 Canción guardada actualmente`;
+    }
+
     if (slot === "oursong" && song.photoUrl) {
       document.getElementById("adminPhotoPreview").innerHTML = `<img src="${song.photoUrl}" alt="Portada">`;
     }
   } else {
     deleteBtn.classList.add("hidden");
   }
+}
+
+// Selección de archivo de audio
+let selectedAudioFile = null;
+const audioInput = document.getElementById("adminSongAudioFile");
+if (audioInput) {
+  audioInput.addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    selectedAudioFile = file;
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+    const audioPrev = document.getElementById("adminAudioPreview");
+    if (audioPrev) {
+      audioPrev.innerHTML = `🎵 Archivo seleccionado: <strong>${file.name}</strong> (${sizeMB} MB)`;
+    }
+  });
 }
 
 // Preview y compresión de foto a Base64
@@ -452,7 +473,7 @@ document.getElementById("adminSongPhoto").addEventListener("change", function(e)
 // Eliminar
 document.getElementById("adminDeleteBtn").addEventListener("click", async () => {
   const slot = document.getElementById("adminSlot").value;
-  if (!confirm("\u00BFEstas seguro de eliminar esta cancion?")) return;
+  if (!confirm("¿Estas seguro de eliminar esta cancion?")) return;
 
   try {
     await db.collection("songs").doc(slot).delete();
@@ -478,21 +499,50 @@ async function saveSong() {
   const slot       = document.getElementById("adminSlot").value;
   const title      = document.getElementById("adminSongTitle").value.trim();
   const artist     = document.getElementById("adminSongArtist").value.trim();
-  const link       = document.getElementById("adminSongLink").value.trim();
+  let link         = document.getElementById("adminSongLink").value.trim();
   const dedication = document.getElementById("adminSongDedication").value.trim();
   const carta      = document.getElementById("adminSongCarta").value.trim();
-  const emoji      = document.getElementById("adminSongEmoji").value.trim() || "\uD83C\uDFB5";
-
-  if (!title || !link) {
-    alert("Por favor completa al menos el titulo y el link.");
-    return;
-  }
+  const emoji      = document.getElementById("adminSongEmoji").value.trim() || "🎵";
 
   const btn = document.getElementById("adminSaveBtn");
-  btn.textContent = "Guardando...";
   btn.disabled = true;
 
   try {
+    // Si se seleccionó un archivo de audio nuevo, subirlo a Firebase Storage
+    if (selectedAudioFile) {
+      btn.textContent = "Subiendo archivo de audio...";
+      try {
+        const fileExt = selectedAudioFile.name.split('.').pop();
+        const safeName = selectedAudioFile.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const storageRef = firebase.storage().ref(`songs/${slot}_${Date.now()}_${safeName}`);
+        const snapshot = await storageRef.put(selectedAudioFile);
+        link = await snapshot.ref.getDownloadURL();
+      } catch (storageErr) {
+        console.warn("Storage upload failed, fallback base64 if small:", storageErr);
+        if (selectedAudioFile.size <= 850 * 1024) {
+          link = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = evt => resolve(evt.target.result);
+            reader.onerror = err => reject(err);
+            reader.readAsDataURL(selectedAudioFile);
+          });
+        } else {
+          alert("Error al subir a Firebase Storage o el archivo supera 5MB. Por favor intenta de nuevo.");
+          btn.textContent = "Guardar Cancion";
+          btn.disabled = false;
+          return;
+        }
+      }
+    }
+
+    if (!title || (!link && !selectedAudioFile)) {
+      alert("Por favor completa el título y selecciona un archivo de audio para la canción.");
+      btn.textContent = "Guardar Cancion";
+      btn.disabled = false;
+      return;
+    }
+
+    btn.textContent = "Guardando...";
     let photoUrl = songsData[slot] ? songsData[slot].photoUrl : null;
 
     if (slot === "oursong" && selectedPhotoBase64) {
@@ -514,7 +564,7 @@ async function saveSong() {
     clearAdminForm();
     document.getElementById("adminPanel").classList.add("hidden");
     adminPanelOpen = false;
-    showToast("\u{1F3B5} Cancion guardada con exito!");
+    showToast("🎵 Cancion guardada con exito!");
   } catch (err) {
     console.error("Error guardando cancion:", err);
     alert("Error al guardar. Intenta de nuevo.");
@@ -530,10 +580,15 @@ function clearAdminForm() {
   document.getElementById("adminSongLink").value = "";
   document.getElementById("adminSongDedication").value = "";
   document.getElementById("adminSongCarta").value = "";
-  document.getElementById("adminSongEmoji").value = "\uD83C\uDFB5";
+  document.getElementById("adminSongEmoji").value = "🎵";
   document.getElementById("adminSongPhoto").value = "";
   document.getElementById("adminPhotoPreview").innerHTML = "";
   selectedPhotoBase64 = null;
+  selectedAudioFile = null;
+  const audioInputEl = document.getElementById("adminSongAudioFile");
+  if (audioInputEl) audioInputEl.value = "";
+  const audioPrevEl = document.getElementById("adminAudioPreview");
+  if (audioPrevEl) audioPrevEl.innerHTML = "";
   document.getElementById("adminDeleteBtn").classList.add("hidden");
 }
 
