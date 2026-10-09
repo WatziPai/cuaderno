@@ -873,11 +873,25 @@ const loginError = document.getElementById("loginError");
 const loginOverlay = document.getElementById("loginOverlay");
 const logoutBtn = document.getElementById("logoutBtn");
 
+let appInactivityTimer = null;
+function resetAppInactivityTimer() {
+  clearTimeout(appInactivityTimer);
+  appInactivityTimer = setTimeout(() => {
+    auth.signOut();
+  }, 3600000); // 1 hora
+}
+
+// Escuchar interacciones en todo el cuaderno
+['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(evt => {
+  document.addEventListener(evt, resetAppInactivityTimer);
+});
+
 auth.onAuthStateChanged((user) => {
   if (user) {
     // Si hay usuario logueado
     loginOverlay.style.opacity = "0";
     setTimeout(() => { loginOverlay.style.display = "none"; }, 500);
+    resetAppInactivityTimer();
     
     // Ocultar botones de borrar si el usuario es Yen
     const isYen = user.email && user.email.toLowerCase().includes("yen");
