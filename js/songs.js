@@ -213,30 +213,40 @@ function openSongModal(slot) {
 
   currentOpenSlot = slot;
 
-  document.getElementById("songModalEmoji").textContent  = song.emoji || "🎵";
-  document.getElementById("songModalTitle").textContent  = song.title  || "";
-  document.getElementById("songModalArtist").textContent = song.artist || "";
-  document.getElementById("songModalDedication").textContent = song.dedication || "";
+  const emojiEl = document.getElementById("songModalEmoji");
+  if (emojiEl) emojiEl.textContent = song.emoji || "🎵";
+
+  const titleEl = document.getElementById("songModalTitle");
+  if (titleEl) titleEl.textContent = song.title || "";
+
+  const artistEl = document.getElementById("songModalArtist");
+  if (artistEl) artistEl.textContent = song.artist || "";
+
+  const dedEl = document.getElementById("songModalDedication");
+  if (dedEl) dedEl.textContent = song.dedication || "";
   
   const link = song.link || "";
   const iframe = document.getElementById("songModalIframe");
   const playerDiv = document.getElementById("songModalPlayer");
 
-  if (link) {
-    playerDiv.style.display = "block";
-    iframe.src = getEmbedUrl(link);
-  } else {
-    playerDiv.style.display = "none";
-    iframe.src = "";
+  if (playerDiv && iframe) {
+    if (link) {
+      playerDiv.style.display = "block";
+      iframe.src = getEmbedUrl(link);
+    } else {
+      playerDiv.style.display = "none";
+      iframe.src = "";
+    }
   }
 
   renderReactionsDisplay(slot);
   resetReactionButtons();
 
-  // Mostrar reacciones solo para viewer (Yen) o ambos
-  document.getElementById("songReactions").style.display = "block";
+  const reactEl = document.getElementById("songReactions");
+  if (reactEl) reactEl.style.display = "block";
 
-  document.getElementById("songModal").classList.remove("hidden");
+  const modalEl = document.getElementById("songModal");
+  if (modalEl) modalEl.classList.remove("hidden");
 
   // Si es la canción 1 (especial), mostrar overlay especial PRIMERO
   if (slot === "1") {
@@ -248,14 +258,17 @@ document.getElementById("songModalClose").addEventListener("click", closeSongMod
 document.getElementById("songModalOverlay").addEventListener("click", closeSongModal);
 
 function closeSongModal() {
-  document.getElementById("songModal").classList.add("hidden");
+  const modalEl = document.getElementById("songModal");
+  if (modalEl) modalEl.classList.add("hidden");
   // Detener el audio quitando el src del iframe
-  document.getElementById("songModalIframe").src = "";
+  const iframe = document.getElementById("songModalIframe");
+  if (iframe) iframe.src = "";
   currentOpenSlot = null;
 }
 
 // Convertir links a embeds
 function getEmbedUrl(url) {
+  if (!url) return "";
   try {
     const urlObj = new URL(url);
     if (urlObj.hostname.includes("spotify.com")) {
@@ -270,11 +283,14 @@ function getEmbedUrl(url) {
       let videoId = "";
       if (urlObj.hostname.includes("youtu.be")) {
         videoId = urlObj.pathname.substring(1);
+      } else if (urlObj.pathname.includes("/shorts/")) {
+        videoId = urlObj.pathname.split("/shorts/")[1];
       } else if (urlObj.searchParams.has("v")) {
         videoId = urlObj.searchParams.get("v");
       }
       if (videoId) {
-        return `https://www.youtube.com/embed/${videoId}`;
+        videoId = videoId.split("?")[0].split("&")[0];
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
       }
     }
   } catch(e) {}
