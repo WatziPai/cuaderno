@@ -187,20 +187,67 @@ function renderCountdown() {
 }
 
 function buildFlames(count) {
-  let html = '<div class="song-fire-display">';
+  // Configuración por número de llamas (1-5): color, brillo, tamaño
+  const configs = [
+    null, // index 0 sin usar
+    { h: 40, s: 90, base: 80, tip: 100, glow: "rgba(255,200,80,0.35)", size: 22, speed: 2.4 },  // 1 llama - suave
+    { h: 30, s: 95, base: 70, tip: 95,  glow: "rgba(255,160,40,0.45)", size: 26, speed: 2.0 },  // 2 llamas
+    { h: 20, s: 100,base: 60, tip: 90,  glow: "rgba(255,120,20,0.55)", size: 30, speed: 1.7 },  // 3 llamas
+    { h: 10, s: 100,base: 50, tip: 85,  glow: "rgba(255,70,10,0.65)",  size: 34, speed: 1.4 },  // 4 llamas
+    { h: 0,  s: 100,base: 45, tip: 80,  glow: "rgba(255,30,0,0.8)",    size: 38, speed: 1.0 },  // 5 llamas - máximo
+  ];
+  const cfg = configs[count] || configs[1];
+  const color1 = `hsl(${cfg.h}, ${cfg.s}%, ${cfg.base}%)`;
+  const color2 = `hsl(${cfg.h + 30}, 100%, ${cfg.tip}%)`;
+  const colorTip = `hsl(${cfg.h + 50}, 100%, 97%)`;
+
+  let html = `<div class="flame-container flame-level-${count}">`;
   for (let i = 0; i < count; i++) {
-    html += `<span class="fire-flame">&#128293;</span>`;
+    const delay = (i * 0.18).toFixed(2);
+    const widthVar = (0.85 + Math.random() * 0.3).toFixed(2);
+    html += `
+      <svg class="flame-svg" viewBox="0 0 40 60" width="${cfg.size}" height="${cfg.size * 1.5}"
+           style="animation-delay:${delay}s; --fw:${widthVar}; animation-duration:${cfg.speed}s"
+           xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="fg${count}_${i}" cx="50%" cy="80%" r="60%">
+            <stop offset="0%" stop-color="${color2}"/>
+            <stop offset="40%" stop-color="${color1}"/>
+            <stop offset="100%" stop-color="hsl(${cfg.h - 10},100%,30%)" stop-opacity="0.8"/>
+          </radialGradient>
+          <filter id="ff${count}_${i}">
+            <feGaussianBlur stdDeviation="1.2" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <!-- llama principal -->
+        <path class="flame-path" filter="url(#ff${count}_${i})"
+          d="M20,58 C8,55 4,44 6,34 C8,26 14,22 16,14 C18,8 18,2 20,0
+             C22,2 22,8 24,14 C26,22 32,26 34,34 C36,44 32,55 20,58Z"
+          fill="url(#fg${count}_${i})"/>
+        <!-- puntita brillante -->
+        <ellipse class="flame-tip" cx="20" cy="6" rx="4" ry="6" fill="${colorTip}" opacity="0.85"/>
+      </svg>`;
   }
-  html += "</div>";
+  html += `</div>`;
   return html;
 }
 
 function buildFlamesLocked(count) {
-  let html = '<div class="song-fire-display" style="opacity:0.2">';
+  const cfg = { size: 18 + count * 3 };
+  let html = `<div class="flame-container flame-level-${count}" style="opacity:0.18; filter:grayscale(1)">`;
   for (let i = 0; i < count; i++) {
-    html += `<span>&#128293;</span>`;
+    const delay = (i * 0.2).toFixed(2);
+    html += `
+      <svg class="flame-svg" viewBox="0 0 40 60" width="${cfg.size}" height="${cfg.size * 1.5}"
+           style="animation-delay:${delay}s" xmlns="http://www.w3.org/2000/svg">
+        <path class="flame-path"
+          d="M20,58 C8,55 4,44 6,34 C8,26 14,22 16,14 C18,8 18,2 20,0
+             C22,2 22,8 24,14 C26,22 32,26 34,34 C36,44 32,55 20,58Z"
+          fill="hsl(20,60%,55%)"/>
+      </svg>`;
   }
-  html += "</div>";
+  html += `</div>`;
   return html;
 }
 
