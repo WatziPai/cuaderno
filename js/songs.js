@@ -340,15 +340,39 @@ function loadAdminForm(slot) {
   }
 }
 
-// Preview de foto
-let selectedPhotoFile = null;
+// Preview y compresión de foto a Base64
+let selectedPhotoBase64 = null;
 document.getElementById("adminSongPhoto").addEventListener("change", function(e) {
   const file = e.target.files[0];
   if (!file) return;
-  selectedPhotoFile = file;
+  
   const reader = new FileReader();
   reader.onload = function(evt) {
-    document.getElementById("adminPhotoPreview").innerHTML = `<img src="${evt.target.result}" alt="Preview">`;
+    const img = new Image();
+    img.onload = function() {
+      // Comprimir con Canvas para evitar límite de 1MB de Firestore
+      const canvas = document.createElement("canvas");
+      let width = img.width;
+      let height = img.height;
+      const MAX_SIZE = 800;
+      
+      if (width > height && width > MAX_SIZE) {
+        height *= MAX_SIZE / width;
+        width = MAX_SIZE;
+      } else if (height > MAX_SIZE) {
+        width *= MAX_SIZE / height;
+        height = MAX_SIZE;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      selectedPhotoBase64 = canvas.toDataURL("image/jpeg", 0.6);
+      document.getElementById("adminPhotoPreview").innerHTML = `<img src="${selectedPhotoBase64}" alt="Preview">`;
+    };
+    img.src = evt.target.result;
   };
   reader.readAsDataURL(file);
 });
@@ -399,11 +423,8 @@ async function saveSong() {
   try {
     let photoUrl = songsData[slot] ? songsData[slot].photoUrl : null;
 
-    if (slot === "oursong" && selectedPhotoFile) {
-      const ext = selectedPhotoFile.name.split('.').pop();
-      const storageRef = storage.ref(`songs/oursong_${Date.now()}.${ext}`);
-      await storageRef.put(selectedPhotoFile);
-      photoUrl = await storageRef.getDownloadURL();
+    if (slot === "oursong" && selectedPhotoBase64) {
+      photoUrl = selectedPhotoBase64;
     }
 
     await db.collection("songs").doc(slot).set({
@@ -440,7 +461,7 @@ function clearAdminForm() {
   document.getElementById("adminSongEmoji").value = "\uD83C\uDFB5";
   document.getElementById("adminSongPhoto").value = "";
   document.getElementById("adminPhotoPreview").innerHTML = "";
-  selectedPhotoFile = null;
+  selectedPhotoBase64 = null;
   document.getElementById("adminDeleteBtn").classList.add("hidden");
 }
 
