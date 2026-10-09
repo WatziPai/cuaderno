@@ -227,15 +227,27 @@ function openSongModal(slot) {
   
   const link = song.link || "";
   const iframe = document.getElementById("songModalIframe");
+  const audio = document.getElementById("songModalAudio");
   const playerDiv = document.getElementById("songModalPlayer");
 
-  if (playerDiv && iframe) {
+  if (playerDiv) {
     if (link) {
       playerDiv.style.display = "block";
-      iframe.src = getEmbedUrl(link);
+      const isAudioFile = /\.(mp3|wav|m4a|ogg|aac)($|\?)/i.test(link) || link.includes("alt=media");
+      if (isAudioFile && audio) {
+        if (iframe) { iframe.style.display = "none"; iframe.src = ""; }
+        audio.style.display = "block";
+        audio.src = link;
+        audio.play().catch(() => {});
+      } else if (iframe) {
+        if (audio) { audio.pause(); audio.style.display = "none"; audio.src = ""; }
+        iframe.style.display = "block";
+        iframe.src = getEmbedUrl(link);
+      }
     } else {
       playerDiv.style.display = "none";
-      iframe.src = "";
+      if (iframe) { iframe.style.display = "none"; iframe.src = ""; }
+      if (audio) { audio.pause(); audio.style.display = "none"; audio.src = ""; }
     }
   }
 
@@ -260,9 +272,11 @@ document.getElementById("songModalOverlay").addEventListener("click", closeSongM
 function closeSongModal() {
   const modalEl = document.getElementById("songModal");
   if (modalEl) modalEl.classList.add("hidden");
-  // Detener el audio quitando el src del iframe
+  // Detener el audio quitando el src del iframe y pausando audio
   const iframe = document.getElementById("songModalIframe");
-  if (iframe) iframe.src = "";
+  if (iframe) { iframe.src = ""; iframe.style.display = "none"; }
+  const audio = document.getElementById("songModalAudio");
+  if (audio) { audio.pause(); audio.src = ""; audio.style.display = "none"; }
   currentOpenSlot = null;
 }
 
@@ -279,6 +293,8 @@ function getEmbedUrl(url) {
           return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}?utm_source=generator`;
         }
       }
+    } else if (urlObj.hostname.includes("soundcloud.com")) {
+      return `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%23ff758c&auto_play=true&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false`;
     } else if (urlObj.hostname.includes("youtube.com") || urlObj.hostname.includes("youtu.be")) {
       let videoId = "";
       if (urlObj.hostname.includes("youtu.be")) {
