@@ -155,13 +155,9 @@
 
       <div class="song-modal-dedication" id="songModalDedication"></div>
 
-      <a id="songModalLink" href="#" target="_blank" class="btn-open-song">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-          <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-        </svg>
-        Escuchar ahora
-      </a>
+      <div id="songModalPlayer" class="song-modal-player" style="display:none;">
+        <iframe id="songModalIframe" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+      </div>
 
       <div class="song-reactions" id="songReactions">
         <p class="reactions-title">&#10024; Que sientes?</p>

@@ -740,31 +740,14 @@ body::before {
 }
 .song-modal-dedication:empty { display:none; }
 
-.btn-open-song {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  background: linear-gradient(135deg, #F5B8C8, #E8839A, #D4607A);
-  border: none;
-  border-radius: 16px;
-  color: white;
-  font-size: 1rem;
-  font-weight: 600;
-  padding: 17px;
-  text-decoration: none;
-  cursor: pointer;
-  transition: all var(--transition);
-  box-shadow: 0 8px 28px rgba(232,131,154,0.4);
+.song-modal-player {
   margin-bottom: 26px;
-  letter-spacing: 0.02em;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(180,100,130,0.15);
+  background: rgba(253,232,239,0.3);
   position: relative;
   z-index: 1;
-}
-.btn-open-song:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 42px rgba(232,131,154,0.5);
 }
 
 /* Reacciones */

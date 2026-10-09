@@ -217,7 +217,18 @@ function openSongModal(slot) {
   document.getElementById("songModalTitle").textContent  = song.title  || "";
   document.getElementById("songModalArtist").textContent = song.artist || "";
   document.getElementById("songModalDedication").textContent = song.dedication || "";
-  document.getElementById("songModalLink").href = song.link || "#";
+  
+  const link = song.link || "";
+  const iframe = document.getElementById("songModalIframe");
+  const playerDiv = document.getElementById("songModalPlayer");
+
+  if (link) {
+    playerDiv.style.display = "block";
+    iframe.src = getEmbedUrl(link);
+  } else {
+    playerDiv.style.display = "none";
+    iframe.src = "";
+  }
 
   renderReactionsDisplay(slot);
   resetReactionButtons();
@@ -238,7 +249,36 @@ document.getElementById("songModalOverlay").addEventListener("click", closeSongM
 
 function closeSongModal() {
   document.getElementById("songModal").classList.add("hidden");
+  // Detener el audio quitando el src del iframe
+  document.getElementById("songModalIframe").src = "";
   currentOpenSlot = null;
+}
+
+// Convertir links a embeds
+function getEmbedUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.hostname.includes("spotify.com")) {
+      // https://open.spotify.com/track/123 -> https://open.spotify.com/embed/track/123
+      if (!urlObj.pathname.includes("/embed/")) {
+        const parts = urlObj.pathname.split("/").filter(p => p);
+        if (parts.length >= 2) {
+          return `https://open.spotify.com/embed/${parts[0]}/${parts[1]}?utm_source=generator`;
+        }
+      }
+    } else if (urlObj.hostname.includes("youtube.com") || urlObj.hostname.includes("youtu.be")) {
+      let videoId = "";
+      if (urlObj.hostname.includes("youtu.be")) {
+        videoId = urlObj.pathname.substring(1);
+      } else if (urlObj.searchParams.has("v")) {
+        videoId = urlObj.searchParams.get("v");
+      }
+      if (videoId) {
+        return `https://www.youtube.com/embed/${videoId}`;
+      }
+    }
+  } catch(e) {}
+  return url;
 }
 
 /* ───────────────────────────────────────────────────────── */
