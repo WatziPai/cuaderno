@@ -736,12 +736,15 @@ function spawnFireParticles() {
   const container = document.getElementById("specialBgFire");
   container.innerHTML = "";
 
+  const isMobile = window.innerWidth <= 600;
+  const count = isMobile ? 20 : 60;
+
   const colors = [
     "#FF1500","#FF4500","#FF6B00","#FF8C00",
     "#FFA500","#FFB700","#FFD700","#FFF44F"
   ];
 
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < count; i++) {
     const p = document.createElement("div");
     p.className = "fire-particle";
     const size  = Math.random() * 30 + 10;
@@ -749,6 +752,7 @@ function spawnFireParticles() {
     const dur   = Math.random() * 3 + 1.5;
     const delay = Math.random() * 4;
     const color = colors[Math.floor(Math.random() * colors.length)];
+    const blurVal = isMobile ? 0 : Math.random() * 3;
 
     p.style.cssText = `
       width: ${size}px;
@@ -757,7 +761,7 @@ function spawnFireParticles() {
       background: radial-gradient(ellipse at bottom, ${color}, transparent 80%);
       animation-duration: ${dur}s;
       animation-delay: ${delay}s;
-      filter: blur(${Math.random() * 3}px);
+      ${blurVal > 0 ? `filter: blur(${blurVal}px);` : ''}
       opacity: ${Math.random() * 0.6 + 0.4};
     `;
     container.appendChild(p);
@@ -768,8 +772,10 @@ function spawnHearts() {
   const container = document.getElementById("heartsRain");
   container.innerHTML = "";
   const hearts = ["&#10084;&#65039;","&#128149;","&#128150;","&#128151;","&#128147;","&#129505;"];
+  const isMobile = window.innerWidth <= 600;
+  const count = isMobile ? 12 : 30;
 
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < count; i++) {
     const h = document.createElement("div");
     h.className = "heart-drop";
     const left  = Math.random() * 100;
