@@ -13,7 +13,7 @@
     rel="stylesheet">
   <!-- Lottie para animaciones -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
-  <link rel="stylesheet" href="css/songs.css?v=1.0.4">
+  <link rel="stylesheet" href="css/songs.css?v=1.0.5">
 </head>
 
 <body>
@@ -149,6 +149,129 @@
         <!-- Las canciones se renderizan aqui dinamicamente -->
       </div>
 
+      <!-- ═══ INVITACIÓN A CENA ROMÁNTICA ═══ -->
+      <div class="dinner-invitation-section" id="dinnerInvitation">
+        
+        <!-- Partículas decorativas de la invitación -->
+        <div class="dinner-particles" aria-hidden="true">
+          <span>&#10024;</span><span>&#9733;</span><span>&#10024;</span>
+          <span>&#9733;</span><span>&#10024;</span><span>&#9733;</span>
+        </div>
+
+        <!-- Separador decorativo -->
+        <div class="dinner-divider">
+          <div class="divider-line"></div>
+          <div class="divider-icon">&#128140;</div>
+          <div class="divider-line"></div>
+        </div>
+
+        <!-- Tarjeta de invitación -->
+        <div class="dinner-card" id="dinnerCard">
+          
+          <!-- Velas decorativas -->
+          <div class="dinner-candles">
+            <div class="candle candle-left">
+              <div class="candle-flame">
+                <div class="flame-inner"></div>
+              </div>
+              <div class="candle-body"></div>
+              <div class="candle-glow"></div>
+            </div>
+            <div class="candle candle-right">
+              <div class="candle-flame">
+                <div class="flame-inner"></div>
+              </div>
+              <div class="candle-body"></div>
+              <div class="candle-glow"></div>
+            </div>
+          </div>
+
+          <!-- Contenido de la invitación -->
+          <div class="dinner-card-content">
+            <div class="dinner-ribbon">&#128141; Invitaci&oacute;n Especial &#128141;</div>
+            <h2 class="dinner-title">Cena Rom&aacute;ntica</h2>
+            <p class="dinner-subtitle">Una noche solo para nosotros dos</p>
+            
+            <div class="dinner-details">
+              <div class="dinner-detail-item">
+                <span class="detail-icon">&#128197;</span>
+                <div class="detail-text">
+                  <span class="detail-label">Fecha</span>
+                  <span class="detail-value">15 de Octubre</span>
+                </div>
+              </div>
+              <div class="dinner-detail-item">
+                <span class="detail-icon">&#127769;</span>
+                <div class="detail-text">
+                  <span class="detail-label">Hora</span>
+                  <span class="detail-value">En la noche</span>
+                </div>
+              </div>
+              <div class="dinner-detail-item">
+                <span class="detail-icon">&#128149;</span>
+                <div class="detail-text">
+                  <span class="detail-label">Dress code</span>
+                  <span class="detail-value">Lo que te haga sentir hermosa</span>
+                </div>
+              </div>
+            </div>
+
+            <p class="dinner-message">
+              Mi amor, quiero pasar una noche especial contigo. 
+              Una cena, t&uacute; y yo, con velas, buena m&uacute;sica y todo mi amor. 
+              &iquest;Me concedes esta noche? &#10084;&#65039;
+            </p>
+
+            <!-- Botones de respuesta -->
+            <div class="dinner-response" id="dinnerResponse">
+              <button class="btn-dinner-accept" id="btnDinnerAccept">
+                <span class="btn-accept-icon">&#10084;&#65039;</span>
+                <span>Acepto con todo mi coraz&oacute;n</span>
+              </button>
+              <button class="btn-dinner-maybe" id="btnDinnerMaybe">
+                &#128563; D&eacute;jame pensarlo...
+              </button>
+            </div>
+
+            <!-- Estado de respuesta aceptada -->
+            <div class="dinner-accepted hidden" id="dinnerAccepted">
+              <div class="accepted-icon">&#128149;</div>
+              <p class="accepted-text">&iexcl;Es una cita, mi amor!</p>
+              <p class="accepted-subtext">Te voy a hacer la noche m&aacute;s especial &#10024;</p>
+            </div>
+          </div>
+
+          <!-- Rosa decorativa -->
+          <div class="dinner-rose">&#127801;</div>
+        </div>
+
+        <!-- Countdown hasta la cena -->
+        <div class="dinner-countdown" id="dinnerCountdown">
+          <p class="countdown-label">&#10024; Faltan para nuestra noche especial &#10024;</p>
+          <div class="countdown-timer" id="dinnerTimer">
+            <div class="countdown-unit">
+              <span class="countdown-number" id="countdownDays">0</span>
+              <span class="countdown-text">d&iacute;as</span>
+            </div>
+            <div class="countdown-separator">:</div>
+            <div class="countdown-unit">
+              <span class="countdown-number" id="countdownHours">0</span>
+              <span class="countdown-text">horas</span>
+            </div>
+            <div class="countdown-separator">:</div>
+            <div class="countdown-unit">
+              <span class="countdown-number" id="countdownMins">0</span>
+              <span class="countdown-text">min</span>
+            </div>
+            <div class="countdown-separator">:</div>
+            <div class="countdown-unit">
+              <span class="countdown-number" id="countdownSecs">0</span>
+              <span class="countdown-text">seg</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </main>
 
   </div>
@@ -253,7 +376,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-storage-compat.js"></script>
-  <script src="js/songs.js?v=1.0.4"></script>
+  <script src="js/songs.js?v=1.0.5"></script>
 
 </body>
 

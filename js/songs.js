@@ -996,3 +996,212 @@ document.getElementById("adminSlot").addEventListener("change", function() {
     photoField.style.display = slot.value === "oursong" ? "flex" : "none";
   }
 })();
+
+/* ───────────────────────────────────────────────────────── */
+/*  11. INVITACIÓN A CENA ROMÁNTICA                          */
+/* ───────────────────────────────────────────────────────── */
+
+const MAYBE_PHRASES = [
+  "¿Cómo que pensarlo? 🥺",
+  "¡Va a haber comida deliciosa y postrecito! 🍰",
+  "¿Un poquito más de tiempo? ¡Di que sí! 💕",
+  "¡No se vale dudar de nuestro amor! 🌹",
+  "Prometo que será una noche mágica... ✨",
+  "¡Mira qué lindo brilla el botón de arriba! 🥰",
+  "No acepto un no como respuesta 😏❤️"
+];
+let maybeClickCount = 0;
+
+function initDinnerInvitation() {
+  const acceptBtn = document.getElementById("btnDinnerAccept");
+  const maybeBtn = document.getElementById("btnDinnerMaybe");
+  
+  if (acceptBtn && !acceptBtn.dataset.bound) {
+    acceptBtn.dataset.bound = "true";
+    acceptBtn.addEventListener("click", handleDinnerAccept);
+  }
+  
+  if (maybeBtn && !maybeBtn.dataset.bound) {
+    maybeBtn.dataset.bound = "true";
+    maybeBtn.addEventListener("click", handleDinnerMaybe);
+  }
+
+  // Cargar estado inicial desde localStorage
+  const savedStatus = localStorage.getItem("cuaderno_dinner_accepted");
+  if (savedStatus === "true") {
+    showDinnerAcceptedUI(false);
+  }
+
+  // Iniciar temporizador
+  updateDinnerCountdown();
+  if (!window._dinnerTimerInterval) {
+    window._dinnerTimerInterval = setInterval(updateDinnerCountdown, 1000);
+  }
+
+  // Suscribir a Firebase Firestore si está disponible
+  subscribeToDinnerInvitation();
+}
+
+function updateDinnerCountdown() {
+  const daysEl = document.getElementById("countdownDays");
+  const hoursEl = document.getElementById("countdownHours");
+  const minsEl = document.getElementById("countdownMins");
+  const secsEl = document.getElementById("countdownSecs");
+  const labelEl = document.querySelector("#dinnerCountdown .countdown-label");
+
+  if (!daysEl || !hoursEl || !minsEl || !secsEl) return;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  // 15 de Octubre a las 20:00:00 (8:00 PM)
+  let targetDate = new Date(currentYear, 9, 15, 20, 0, 0);
+
+  // Si ya pasó el 15 de octubre de este año por más de 1 día, apuntar al siguiente año
+  if (now.getTime() - targetDate.getTime() > 86400000) {
+    targetDate = new Date(currentYear + 1, 9, 15, 20, 0, 0);
+  }
+
+  const diff = targetDate.getTime() - now.getTime();
+
+  // Si es hoy 15 de octubre y la hora ya llegó o está en curso
+  if (now.getMonth() === 9 && now.getDate() === 15 && diff <= 0 && diff > -14400000) {
+    if (labelEl) labelEl.innerHTML = "✨ ¡Es hoy nuestra cita! ¡Llegó nuestra noche especial! ✨";
+    daysEl.textContent = "0";
+    hoursEl.textContent = "0";
+    minsEl.textContent = "0";
+    secsEl.textContent = "0";
+    return;
+  }
+
+  if (diff <= 0) {
+    daysEl.textContent = "0";
+    hoursEl.textContent = "0";
+    minsEl.textContent = "0";
+    secsEl.textContent = "0";
+    return;
+  }
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const mins = Math.floor((diff / (1000 * 60)) % 60);
+  const secs = Math.floor((diff / 1000) % 60);
+
+  daysEl.textContent = days;
+  hoursEl.textContent = hours < 10 ? "0" + hours : hours;
+  minsEl.textContent = mins < 10 ? "0" + mins : mins;
+  secsEl.textContent = secs < 10 ? "0" + secs : secs;
+}
+
+function handleDinnerAccept() {
+  localStorage.setItem("cuaderno_dinner_accepted", "true");
+  showDinnerAcceptedUI(true);
+
+  // Guardar en Firestore para que Manuel reciba la confirmación
+  try {
+    if (typeof db !== "undefined") {
+      db.collection("invitations").doc("dinner_oct15").set({
+        accepted: true,
+        acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        acceptedBy: (currentUser && currentUser.name) ? currentUser.name : "Yen",
+        message: "¡Aceptó la cena romántica del 15 de Octubre! ❤️"
+      }, { merge: true }).catch(err => {
+        console.warn("Error guardando en Firestore:", err);
+      });
+    }
+  } catch (e) {
+    console.warn("Firestore catch:", e);
+  }
+}
+
+function handleDinnerMaybe() {
+  const maybeBtn = document.getElementById("btnDinnerMaybe");
+  const acceptBtn = document.getElementById("btnDinnerAccept");
+  if (!maybeBtn) return;
+
+  const phrase = MAYBE_PHRASES[maybeClickCount % MAYBE_PHRASES.length];
+  maybeBtn.textContent = phrase;
+  maybeClickCount++;
+
+  // Hacer que el botón de aceptar llame más la atención
+  if (acceptBtn) {
+    const scale = Math.min(1.22, 1 + maybeClickCount * 0.04);
+    acceptBtn.style.transform = `scale(${scale})`;
+    acceptBtn.style.boxShadow = "0 14px 44px rgba(232, 131, 154, 0.85)";
+  }
+}
+
+function showDinnerAcceptedUI(celebrate = false) {
+  const responseEl = document.getElementById("dinnerResponse");
+  const acceptedEl = document.getElementById("dinnerAccepted");
+  if (!acceptedEl) return;
+
+  if (responseEl) {
+    responseEl.style.display = "none";
+  }
+  acceptedEl.classList.remove("hidden");
+
+  if (celebrate) {
+    spawnDinnerConfetti();
+    try {
+      acceptedEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch (_) {}
+  }
+}
+
+function subscribeToDinnerInvitation() {
+  try {
+    if (typeof db !== "undefined") {
+      db.collection("invitations").doc("dinner_oct15").onSnapshot(doc => {
+        if (doc.exists && doc.data() && doc.data().accepted) {
+          localStorage.setItem("cuaderno_dinner_accepted", "true");
+          showDinnerAcceptedUI(false);
+        }
+      }, err => {
+        console.log("Firestore listener note:", err);
+      });
+    }
+  } catch (err) {
+    console.warn(err);
+  }
+}
+
+function spawnDinnerConfetti() {
+  const confettiContainer = document.createElement("div");
+  confettiContainer.className = "dinner-confetti";
+  document.body.appendChild(confettiContainer);
+
+  const colors = ["#FFD700", "#E8839A", "#F5B8C8", "#C9AEDF", "#FF6B8B", "#FFF5E0", "#FF4D6D"];
+  const symbols = ["❤️", "✨", "🌹", "💖", "🥂", "💕", "💍", "🥰"];
+
+  for (let i = 0; i < 90; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    const isSymbol = Math.random() < 0.35;
+    if (isSymbol) {
+      piece.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+      piece.style.fontSize = (Math.random() * 14 + 14) + "px";
+      piece.style.background = "transparent";
+    } else {
+      piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.borderRadius = Math.random() > 0.5 ? "50%" : "3px";
+      const size = Math.random() * 8 + 6;
+      piece.style.width = size + "px";
+      piece.style.height = size + "px";
+    }
+    piece.style.left = Math.random() * 100 + "vw";
+    piece.style.top = "-20px";
+    piece.style.animationDuration = (Math.random() * 2.5 + 2) + "s";
+    piece.style.animationDelay = (Math.random() * 1.5) + "s";
+    confettiContainer.appendChild(piece);
+  }
+
+  setTimeout(() => {
+    confettiContainer.remove();
+  }, 5500);
+}
+
+// Inicializar al cargar
+document.addEventListener("DOMContentLoaded", initDinnerInvitation);
+if (document.readyState === "complete" || document.readyState === "interactive") {
+  initDinnerInvitation();
+}
