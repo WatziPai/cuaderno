@@ -494,7 +494,7 @@ body::before {
 .our-song-play:hover { transform:scale(1.06); box-shadow:0 12px 36px rgba(232,131,154,0.5); }
 
 /* ═══ COUNTDOWN LIST ═══ */
-.countdown-list { display:flex; flex-direction:column; gap:14px; }
+.countdown-list { display:flex; flex-direction:column; gap:26px; }
 
 .song-item {
   display: flex;
