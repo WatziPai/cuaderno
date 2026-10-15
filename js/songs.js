@@ -1113,6 +1113,36 @@ function handleDinnerAccept() {
   }
 }
 
+/* ─── REINICIAR INVITACIÓN (solo admin) ─── */
+async function resetDinnerInvitation() {
+  if (!confirm('¿Reiniciar la invitación? Ella podrá responder de nuevo.')) return;
+  try {
+    // Borrar de Firestore
+    if (typeof db !== 'undefined') {
+      await db.collection('invitations').doc('dinner_oct15').delete();
+    }
+  } catch (e) {
+    console.warn('No se pudo borrar de Firestore (puede que ya no existía):', e);
+  }
+  // Limpiar localStorage
+  localStorage.removeItem('cuaderno_dinner_accepted');
+
+  // Restaurar UI
+  const responseEl = document.getElementById('dinnerResponse');
+  const acceptedEl = document.getElementById('dinnerAccepted');
+  if (responseEl) responseEl.style.display = '';
+  if (acceptedEl) acceptedEl.classList.add('hidden');
+  maybeClickCount = 0;
+
+  // Resetear botones
+  const acceptBtn = document.getElementById('btnDinnerAccept');
+  const maybeBtn  = document.getElementById('btnDinnerMaybe');
+  if (acceptBtn) { acceptBtn.style.transform = ''; acceptBtn.style.boxShadow = ''; }
+  if (maybeBtn)  { maybeBtn.textContent = '😩 Déjame pensarlo...'; }
+
+  showToast('🔄 Invitación reiniciada — ella puede responder de nuevo 💕');
+}
+
 function handleDinnerMaybe() {
   const maybeBtn = document.getElementById("btnDinnerMaybe");
   const acceptBtn = document.getElementById("btnDinnerAccept");

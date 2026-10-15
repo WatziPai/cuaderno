@@ -13,7 +13,7 @@
     rel="stylesheet">
   <!-- Lottie para animaciones -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
-  <link rel="stylesheet" href="css/songs.css?v=1.0.5">
+  <link rel="stylesheet" href="css/songs.css?v=1.0.6">
 </head>
 
 <body>
@@ -122,6 +122,14 @@
             <button id="adminDeleteBtn" class="btn-admin-delete hidden">&#128465; Eliminar cancion</button>
             <button id="adminCancelBtn" class="btn-admin-cancel">Cancelar</button>
             <button id="adminSaveBtn" class="btn-admin-save">Guardar Cancion</button>
+          </div>
+          <!-- Reiniciar invitación -->
+          <div class="admin-field" style="grid-column:1/-1; border-top:1px solid rgba(232,131,154,0.15); padding-top:16px; margin-top:4px;">
+            <label style="color:#9A7020;">&#127829; Invitación a Cena</label>
+            <p style="font-size:0.82rem; color:var(--s-muted); margin-bottom:10px;">Si tú la abriste por error, reinicia para que ella pueda responder de nuevo.</p>
+            <button onclick="resetDinnerInvitation()" style="background:rgba(212,168,92,0.15); border:1.5px solid rgba(212,168,92,0.4); border-radius:10px; color:#9A7020; padding:9px 18px; font-size:0.88rem; font-weight:600; cursor:pointer;">
+              &#128260; Reiniciar invitación
+            </button>
           </div>
         </div>
       </div>
@@ -376,7 +384,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-storage-compat.js"></script>
-  <script src="js/songs.js?v=1.0.5"></script>
+  <script src="js/songs.js?v=1.0.6"></script>
 
 </body>
 
